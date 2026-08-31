@@ -271,6 +271,16 @@ Setup, the four checks CI runs, and the parts of the pipeline that need care are
 
 ---
 
+## 👤 Team
+
+Developed by **Team P-110**, Khóa 3 AI Thực Chiến:
+- Nguyễn Quang Vinh (Team Lead)
+- Hoàng Trường Giang
+- Lê Thị Trúc Linh
+- Đào Ngọc Duy
+
+---
+
 ## 📄 License & Acknowledgments
 
 This project is licensed under the [**MIT License**](LICENSE). Developed as part of the **AI20K Build Phase (Cohort 3)**. Special thanks to the instructors and mentors for technical guidance on multi-agent architectures and enterprise RAG standards.
