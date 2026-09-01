@@ -19,7 +19,22 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
-LATENCY_BUDGET_MS = 3000.0
+LATENCY_BUDGET_MS = 30000.0
+"""End-to-end budget for a run that calls a generation model.
+
+The original 3000ms was set when the graded traces never reached a real LLM (p50 was
+~6ms). Against live Gemini traffic the `generate` step alone has a p50 of ~2.5s, so that
+budget failed 160/165 real runs while measuring nothing about quality. This budget is the
+field response ceiling: past it a Sale has given up waiting.
+"""
+
+PIPELINE_OVERHEAD_BUDGET_MS = 3000.0
+"""Budget for everything the pipeline controls: retrieval, rerank, tools, verification.
+
+Model latency is the vendor's to own, so it is excluded here. This is the number that
+regresses when a retrieval or tool change makes the pipeline slower, and it keeps the
+original 3000ms bar meaningful now that it is measured against comparable work.
+"""
 
 
 @dataclass
@@ -50,21 +65,38 @@ def _steps(run: dict[str, Any], name: str) -> list[dict[str, Any]]:
 
 
 def grade_answered_runs_are_grounded(run: dict[str, Any]) -> GradeResult:
-    """An answer served to a Sale must cite something.
+    """An answer served to a Sale must be built on retrieved evidence.
 
-    A run that answered with zero citations either bypassed retrieval or generated from
-    the model's own knowledge — both are exactly the failure this system exists to
-    prevent, and neither shows up in the Verifier score.
+    A run that answered without evidence either bypassed retrieval or generated from the
+    model's own knowledge — both are exactly the failure this system exists to prevent,
+    and neither shows up in the Verifier score.
+
+    Grounding is judged on what retrieval returned, not on `citation_count`. Those differ
+    by design: `_citations_for` drops the chips entirely when the hits span several
+    projects, because naming three unrelated projects under one answer reads as false
+    grounding. That is a display decision about an answer that *is* grounded, so scoring it
+    as ungrounded measured the suppression rule rather than the pipeline — it accounted for
+    107 of 123 apparent failures on live traffic. A run that retrieved nothing and still
+    answered remains a failure, which is the case this grader exists to catch.
     """
     name = "answered_runs_are_grounded"
     if run.get("outcome") != "answered" or run.get("used_cache"):
         return GradeResult(name, True)
 
-    citations = run.get("citation_count", 0)
-    if citations > 0:
+    if run.get("citation_count", 0) > 0:
         return GradeResult(name, True)
 
-    return GradeResult(name, False, "Answered with no citations.")
+    retrieved = sum(
+        step["doc_count"] for step in _steps(run, "retrieve") if isinstance(step.get("doc_count"), int)
+    )
+    if retrieved > 0:
+        return GradeResult(name, True)
+
+    intent = _steps(run, "intent")
+    if intent and not intent[0].get("needs_document_retrieval"):
+        return GradeResult(name, True)
+
+    return GradeResult(name, False, "Answered with no retrieved evidence.")
 
 
 def grade_retrieval_ran_when_needed(run: dict[str, Any]) -> GradeResult:
@@ -115,14 +147,49 @@ def grade_retries_carry_a_correction(run: dict[str, Any]) -> GradeResult:
     return GradeResult(name, False, f"{len(blind)} retry attempt(s) carried no correction.")
 
 
+MODEL_STEPS = ("generate", "verify")
+"""Steps whose duration is time spent waiting on a model, not pipeline work.
+
+`verify` is the Verifier judge — another model call, and on live traces its p50 is ~1.2s
+with a tail past a minute. Counting it as overhead blamed the pipeline for vendor latency.
+"""
+
+
+def _model_ms(run: dict[str, Any]) -> float:
+    """Wall time spent inside model calls, as recorded on the steps that make them."""
+    return sum(
+        step["duration_ms"]
+        for name in MODEL_STEPS
+        for step in _steps(run, name)
+        if isinstance(step.get("duration_ms"), int | float)
+    )
+
+
 def grade_latency_within_budget(run: dict[str, Any]) -> GradeResult:
-    """Under the field response budget, measured end to end."""
+    """Two bars: the end-to-end wait, and the pipeline overhead the system controls.
+
+    Splitting them is what makes this grader actionable. A run that is slow purely because
+    the model took its time is not the same defect as one where retrieval and tools burned
+    the budget, and collapsing both into one number made every real run fail for a reason
+    no prompt or retrieval change could fix.
+    """
     name = "latency_within_budget"
     duration = run.get("duration_ms")
-    if not isinstance(duration, int | float) or duration <= LATENCY_BUDGET_MS:
+    if not isinstance(duration, int | float):
         return GradeResult(name, True)
 
-    return GradeResult(name, False, f"{duration:.0f}ms over the {LATENCY_BUDGET_MS:.0f}ms budget.")
+    if duration > LATENCY_BUDGET_MS:
+        return GradeResult(name, False, f"{duration:.0f}ms over the {LATENCY_BUDGET_MS:.0f}ms budget.")
+
+    overhead = duration - _model_ms(run)
+    if overhead > PIPELINE_OVERHEAD_BUDGET_MS:
+        return GradeResult(
+            name,
+            False,
+            f"{overhead:.0f}ms of pipeline overhead over the {PIPELINE_OVERHEAD_BUDGET_MS:.0f}ms budget.",
+        )
+
+    return GradeResult(name, True)
 
 
 GRADERS = (

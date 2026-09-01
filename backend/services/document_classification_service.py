@@ -15,8 +15,9 @@ from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Literal, TypedDict
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
+from backend.core.config import settings
 from backend.core.enums import DocumentCategory, LegalStatus
 from backend.core.gemini_client import generate_json, is_gemini_quota_error
 
@@ -170,6 +171,38 @@ class SectionClassification(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     reason: str = Field(default="", max_length=400)
     excerpt: str = Field(default="", max_length=300)
+
+    @field_validator("reason", "excerpt", "content_type", mode="before")
+    @classmethod
+    def _truncate_descriptive_text(cls, value: object, info: ValidationInfo) -> object:
+        """Trim over-long descriptive text instead of failing the whole classification.
+
+        These three fields are explanatory: the excerpt is evidence shown to an Admin, the
+        reason is the rationale beside it. Nothing downstream parses them, so a model that
+        returns 320 characters where 300 were allowed has produced a usable classification
+        with a cosmetically long field.
+
+        Pydantic rejects the *entire* `DocumentClassification` when any one of them
+        overruns, which failed ingestion of a real 60-section PDF on 3 long excerpts out of
+        60 and lost the other 57 sections plus every extracted fact with them. The limit is
+        never stated in the prompt, so the model has no way to comply reliably.
+
+        `mode="before"` matters: an `mode="after"` validator runs only once `max_length`
+        has already passed, which is exactly the check being tripped here. Category,
+        confidence and page — the fields decisions are actually made from — keep validating
+        strictly, so a genuinely malformed response still fails.
+        """
+        if not isinstance(value, str):
+            return value
+
+        limit = 300
+        for constraint in cls.model_fields[str(info.field_name)].metadata:
+            if (declared := getattr(constraint, "max_length", None)) is not None:
+                limit = declared
+                break
+
+        cleaned = " ".join(value.split())
+        return cleaned[:limit]
 
 
 class DocumentClassification(BaseModel):
@@ -421,6 +454,8 @@ theo mục đích tổng thể, đồng thời trả categories gồm TẤT CẢ
 Với mỗi section_index được cung cấp, phải trả đúng một section_classifications item. Phân loại
 theo ý nghĩa của section, không dựa vào một từ khóa đơn lẻ. Bảng giá, chính sách, lịch thanh toán
 và pháp lý trong cùng một file phải nhận category riêng ở cấp section.
+excerpt tối đa 300 ký tự và reason tối đa 400 ký tự — cắt ngắn phần trích dẫn thay vì trả về
+nguyên đoạn dài; đây là bằng chứng ngắn cho Admin đọc, không phải bản sao đầy đủ của section.
 
 Quy tắc metadata:
 - project_id chỉ được chọn đúng một id có trong PROJECT_CATALOG_JSON. Chọn project/phân khu cụ thể
@@ -493,6 +528,7 @@ def classify_document(
             DocumentClassification,
             system_instruction=_CLASSIFICATION_SYSTEM_INSTRUCTION,
             temperature=0.0,
+            model=settings.gemini_model_background,
         )
     except Exception as exc:
         if is_gemini_quota_error(exc):

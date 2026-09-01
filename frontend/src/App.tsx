@@ -25,7 +25,6 @@ import { DocumentRelationsTab } from "./routes/admin/DocumentRelationsTab";
 import { EvalTab } from "./routes/admin/EvalTab";
 import { ConflictsTab } from "./routes/admin/ConflictsTab";
 import { BillingRequestsTab } from "./routes/admin/BillingRequestsTab";
-import { SettingsTab } from "./routes/admin/SettingsTab";
 import { SalesManagementPage } from "./routes/admin/SalesManagementPage";
 import { ObservabilityPage } from "./routes/admin/ObservabilityPage";
 import { NotFound } from "./routes/NotFound";
@@ -200,14 +199,6 @@ function AppShell() {
             element={
               <ProtectedRoute allowedRole="admin">
                 <BillingRequestsTab />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute allowedRole="admin">
-                <SettingsTab />
               </ProtectedRoute>
             }
           />

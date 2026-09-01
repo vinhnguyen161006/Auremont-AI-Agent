@@ -19,7 +19,7 @@ weight: 1
 - **Tips:** Sử dụng template README.md đã có sẵn
 
 #### 3. Architecture Diagram
-- **Location:** `/docs/architecture_diagram.md`
+- **Location:** `/ARCHITECTURE.md` (mermaid diagram cũng có trong `/README.md`)
 - **Yêu cầu:** System diagram + Component descriptions
 - **Tips:** Dùng Mermaid syntax (render trên GitHub)
 

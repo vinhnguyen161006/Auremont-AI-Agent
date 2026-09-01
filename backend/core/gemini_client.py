@@ -1,6 +1,8 @@
 import logging
+import threading
 import time
 import uuid
+from collections import OrderedDict
 from typing import Any, TypeVar, cast
 
 import google.genai as genai
@@ -60,7 +62,12 @@ def get_gemini_client() -> genai.Client:
     return _client
 
 
-def generate_text(prompt: str, system_instruction: str | None = None) -> str:
+def generate_text(
+    prompt: str,
+    system_instruction: str | None = None,
+    *,
+    model: str | None = None,
+) -> str:
     config = (
         types.GenerateContentConfig(
             system_instruction=system_instruction,
@@ -69,7 +76,7 @@ def generate_text(prompt: str, system_instruction: str | None = None) -> str:
         else None
     )
 
-    return client_models_generate(prompt, config).text or ""
+    return client_models_generate(prompt, config, model=model).text or ""
 
 
 def generate_json(
@@ -78,6 +85,7 @@ def generate_json(
     system_instruction: str | None = None,
     *,
     temperature: float | None = None,
+    model: str | None = None,
 ) -> ModelT | None:
     """Generate a response constrained to `schema`, returning a parsed model instance.
 
@@ -91,11 +99,11 @@ def generate_json(
     config = types.GenerateContentConfig(
         system_instruction=system_instruction,
         response_mime_type="application/json",
-        response_schema=schema,
+        response_schema=_serving_safe_schema(schema),
         temperature=temperature,
     )
 
-    response = client_models_generate(prompt, config)
+    response = client_models_generate(prompt, config, model=model)
     parsed = getattr(response, "parsed", None)
     if isinstance(parsed, schema):
         return parsed
@@ -106,13 +114,64 @@ def generate_json(
     return schema.model_validate_json(raw)
 
 
-def client_models_generate(prompt: str, config):
+_SERVING_HOSTILE_KEYS = (
+    "minLength",
+    "maxLength",
+    "minItems",
+    "maxItems",
+    "minimum",
+    "maximum",
+    "exclusiveMinimum",
+    "exclusiveMaximum",
+    "pattern",
+    "format",
+)
+
+
+def _serving_safe_schema(schema: type[BaseModel]) -> dict[str, Any]:
+    """The model's JSON schema with the bounds Gemini refuses to compile stripped out.
+
+    Gemini turns `response_schema` into a decoding constraint, and every bound multiplies
+    its state count. A nested array of objects carrying several bounded strings tips it
+    over: the semantic conflict judge (20 evidence items, three 1000-character strings
+    each, plus a bounded float) was rejected outright with `400 INVALID_ARGUMENT ... too
+    many states for serving`, which failed every document approval rather than any one
+    document.
+
+    Only the bounds are dropped, never the shape: field names, types, nesting, enums and
+    `required` still constrain decoding, and `descriptions` — which carry the same limits
+    in words — are preserved. The Pydantic model is unchanged, so `model_validate_json`
+    below still enforces every original constraint on whatever comes back. The bounds move
+    from "the decoder cannot emit this" to "we reject it if it does", which is where the
+    over-long-excerpt case already showed they belong.
+    """
+    return _strip_schema_constraints(schema.model_json_schema())
+
+
+def _strip_schema_constraints(node: Any) -> Any:
+    """Recursively drop serving-hostile validation keywords from a JSON-schema fragment."""
+    if isinstance(node, dict):
+        return {
+            key: _strip_schema_constraints(value)
+            for key, value in node.items()
+            if key not in _SERVING_HOSTILE_KEYS
+        }
+    if isinstance(node, list):
+        return [_strip_schema_constraints(item) for item in node]
+    return node
+
+
+def client_models_generate(prompt: str, config, *, model: str | None = None):
     """The single entry point for every generation call, so the retry policy above cannot
-    drift between the plain-text and schema-constrained paths."""
+    drift between the plain-text and schema-constrained paths.
+
+    `model` is resolved here rather than as a signature default so that overriding the
+    setting at runtime (tests, env reloads) is not frozen at import time."""
+    model = model or settings.gemini_model_fast
     for attempt in range(1, _GENERATE_MAX_ATTEMPTS + 1):
         try:
             response = get_gemini_client().models.generate_content(
-                model=settings.GEMINI_MODEL,
+                model=model,
                 contents=prompt,
                 config=config,
             )
@@ -125,7 +184,7 @@ def client_models_generate(prompt: str, config):
                 tracing.step(
                     "llm.usage",
                     usage_id=usage_id,
-                    model=settings.GEMINI_MODEL,
+                    model=model,
                     input_tokens=input_tokens,
                     output_tokens=output_tokens,
                     total_tokens=total_tokens,
@@ -138,7 +197,7 @@ def client_models_generate(prompt: str, config):
                             usage_id=usage_id,
                             run_id=tracing.current_run_id(),
                             operation="gemini_generation",
-                            model=settings.GEMINI_MODEL,
+                            model=model,
                             input_tokens=input_tokens,
                             output_tokens=output_tokens,
                             total_tokens=total_tokens,
@@ -159,7 +218,7 @@ def client_models_generate(prompt: str, config):
                 "Gemini generation hit a transient fault; retrying once.",
                 extra={
                     "event": "gemini.generate.retry",
-                    "model": settings.GEMINI_MODEL,
+                    "model": model,
                     "status_code": exc.code,
                     "attempt": attempt,
                     "delay_seconds": delay,
@@ -187,14 +246,55 @@ def embed_documents(texts: list[str], *, title: str) -> list[list[float]]:
     )
 
 
+_QUERY_EMBED_CACHE_SIZE = 512
+_query_embed_cache: "OrderedDict[str, list[float]]" = OrderedDict()
+_query_embed_lock = threading.Lock()
+
+
 def embed_query(query: str) -> list[float]:
-    """Embed a query for retrieval against Qdrant."""
-    vectors = _embed(
+    """Embed a query for retrieval against Qdrant, reusing recent identical queries.
+
+    This call is on the critical path of every retrieval and is the step's dominant cost:
+    ~372ms warm, but up to ~3.5s when the free-tier quota trips `_EMBED_MAX_ATTEMPTS`
+    rounds of `time.sleep` backoff — which is what pushed 28 of 165 live runs past the
+    pipeline-overhead budget while Qdrant itself answered in ~30ms.
+
+    A query embedding is a pure function of the text and the model, so repeats (a Sale
+    rephrasing, a retried turn, the same question from several Sales) are safe to serve
+    from memory. The cache is per-process and bounded; the Semantic Cache in
+    `cache_service` is a different layer — it matches *similar* questions to skip the whole
+    pipeline, while this only skips re-embedding a *byte-identical* one.
+
+    A copy is returned because callers pass the vector into Qdrant client calls that may
+    mutate the list, and a mutated entry would silently corrupt later lookups.
+    """
+    key = f"{settings.embedding_model}:{settings.embedding_dimensions}:{query}"
+
+    with _query_embed_lock:
+        cached = _query_embed_cache.get(key)
+        if cached is not None:
+            _query_embed_cache.move_to_end(key)
+            return list(cached)
+
+    vector = _embed(
         [query],
         task_type="RETRIEVAL_QUERY",
         title=None,
-    )
-    return vectors[0]
+    )[0]
+
+    with _query_embed_lock:
+        _query_embed_cache[key] = list(vector)
+        _query_embed_cache.move_to_end(key)
+        while len(_query_embed_cache) > _QUERY_EMBED_CACHE_SIZE:
+            _query_embed_cache.popitem(last=False)
+
+    return list(vector)
+
+
+def clear_query_embedding_cache() -> None:
+    """Drop every memoised query embedding (tests, and after a model/dimension change)."""
+    with _query_embed_lock:
+        _query_embed_cache.clear()
 
 
 def _embed(

@@ -36,7 +36,14 @@ class Settings(BaseSettings):
     llm_model: str = ""
 
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+    # Live customer-turn path: verification and lead scoring stack inside one ~3s budget.
+    gemini_model_fast: str = "gemini-3.5-flash-lite"
+    # User-facing answer generation — the one call a Sale waits on.
+    gemini_model_accurate: str = "gemini-2.5-flash"
+    # Background judgment and extraction: classification, conflict judging, summaries.
+    # Free-tier quota is counted per model, so keeping these off the answer model stops a
+    # busy chat day from also blocking document ingestion and conflict review.
+    gemini_model_background: str = "gemini-3.5-flash-lite"
     classification_auto_approve_threshold: float = Field(default=0.9, ge=0.0, le=1.0)
     classification_require_admin_approval_before_indexing: bool = True
     semantic_conflict_detection_enabled: bool = True

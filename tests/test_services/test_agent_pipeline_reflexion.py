@@ -43,7 +43,7 @@ def _run(monkeypatch, *, verdicts: list[VerifierResult]) -> list[str]:
     monkeypatch.setattr(agent_pipeline, "query_needs_inventory", lambda query: False)
     monkeypatch.setattr(agent_pipeline.risk_service, "detect_commitment_risk", lambda answer: False)
 
-    def _generate_json(prompt, schema, system_instruction=None):
+    def _generate_json(prompt, schema, system_instruction=None, **_kwargs):
         prompts_seen.append(prompt)
         return schema(text="- Can 2PN tu 3,6 ty dong.")
 

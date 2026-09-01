@@ -737,9 +737,19 @@ def _generate(state: PipelineState) -> dict[str, Any]:
     parsed: prompts.ConsultAnswer | prompts.SaleAnswer | None
     try:
         if is_public:
-            parsed = generate_json(prompt, prompts.ConsultAnswer, system_instruction=prompts.SYSTEM_INSTRUCTION_PUBLIC)
+            parsed = generate_json(
+                prompt,
+                prompts.ConsultAnswer,
+                system_instruction=prompts.SYSTEM_INSTRUCTION_PUBLIC,
+                model=get_settings().gemini_model_accurate,
+            )
         else:
-            parsed = generate_json(prompt, prompts.SaleAnswer, system_instruction=prompts.SYSTEM_INSTRUCTION)
+            parsed = generate_json(
+                prompt,
+                prompts.SaleAnswer,
+                system_instruction=prompts.SYSTEM_INSTRUCTION,
+                model=get_settings().gemini_model_accurate,
+            )
     except Exception:
         logger.exception(
             "Answer generation failed.",
@@ -897,17 +907,49 @@ _CITATION_TOKEN_PATTERN = re.compile(r"\d+(?:[.,]\d+)*|[^\W\d_]+(?:\+\d+)?", re.
 
 
 def _citations_for(docs: list[dict], *, answer: str = "") -> list[dict]:
-    """Citations are only worth showing when they point at one coherent source.
+    """Citations are only worth showing when they point at what the answer actually used.
 
     An unscoped search can return hits from several unrelated projects. Chips naming 2-3
-    projects under a reply that never engaged with any of them read as false grounding, and
-    there's no principled way to know which project the answer actually used — so this
-    drops citations entirely rather than pick one to keep.
+    projects under a reply that never engaged with any of them read as false grounding.
+
+    The ambiguity that justifies dropping them is about the documents the answer *drew on*,
+    not everything retrieval happened to return: with a corpus spanning a dozen projects,
+    the top 5 hits almost always span several, so testing the raw hit list suppressed the
+    chips on 108 of 148 retrieving runs — a grounded answer served with no visible source
+    is the failure this system exists to prevent, arrived at from the other side.
+
+    So the span is measured over the documents the answer is evidenced by. When the answer
+    supports no document (or is empty, as on the pre-generation path), there is nothing to
+    disambiguate with and the original conservative rule still applies.
     """
-    project_ids = {doc.get("project_id") for doc in docs if doc.get("project_id")}
+    evidenced = _evidenced_docs(docs, answer)
+    project_ids = {doc.get("project_id") for doc in evidenced if doc.get("project_id")}
     if len(project_ids) > 1:
         return []
-    return build_citations(_rank_citation_evidence(docs, answer))
+    return build_citations(_rank_citation_evidence(evidenced, answer))
+
+
+def _evidenced_docs(docs: list[dict], answer: str) -> list[dict]:
+    """The retrieved docs the answer actually shares specific content with.
+
+    Numbers are what a Sale acts on and what a citation must be able to back, so a doc
+    earns its chip by sharing one with the answer; a doc sharing only common prose has not
+    demonstrably been used. Falls back to the full list when nothing matches, so a run that
+    cannot be attributed keeps the previous behaviour instead of silently losing citations.
+    """
+    answer_tokens = _citation_tokens(answer)
+    if not answer_tokens:
+        return docs
+
+    evidenced = [
+        doc
+        for doc in docs
+        if any(
+            any(character.isdigit() for character in token)
+            for token in answer_tokens & _citation_tokens(str(doc.get("content") or ""))
+        )
+    ]
+    return evidenced or docs
 
 
 def _rank_citation_evidence(docs: list[dict], answer: str) -> list[dict]:

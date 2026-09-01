@@ -88,12 +88,10 @@ def test_resolving_keeps_the_chosen_document_and_blocks_the_other(client, db_ses
     assert get_document(db_session, new.id).is_current is True
 
 
-def test_dismissing_keeps_both_documents_untouched(client, db_session, conflict):
+def test_dismissing_blocks_neither_document(client, db_session, conflict):
     flag, old, new = conflict
-    old_before = get_document(db_session, old.id)
-    new_before = get_document(db_session, new.id)
-    old_status, old_is_current = old_before.status, old_before.is_current
-    new_status, new_is_current = new_before.status, new_before.is_current
+    old_status = get_document(db_session, old.id).status
+    new_status = get_document(db_session, new.id).status
 
     response = client.post(f"/api/v1/admin/conflicts/{flag.id}/dismiss")
     assert response.status_code == 200, response.text
@@ -101,9 +99,61 @@ def test_dismissing_keeps_both_documents_untouched(client, db_session, conflict)
     assert response.json()["resolved_by"] is not None
 
     assert get_document(db_session, old.id).status == old_status
-    assert get_document(db_session, old.id).is_current == old_is_current
     assert get_document(db_session, new.id).status == new_status
-    assert get_document(db_session, new.id).is_current == new_is_current
+
+
+def test_dismissing_returns_quarantined_documents_to_retrieval(client, db_session, conflict):
+    """"Giữ cả 2 file" must actually let both files back into RAG.
+
+    A document waits out its conflict with `is_current = False`, so closing the last
+    conflict without clearing that flag left the warning gone and both files permanently
+    invisible to retrieval — the opposite of what the action promises.
+    """
+    flag, old, new = conflict
+    for document in (old, new):
+        document.is_current = False
+        document.review_status = DocumentReviewStatus.APPROVED
+    db_session.commit()
+
+    response = client.post(f"/api/v1/admin/conflicts/{flag.id}/dismiss")
+    assert response.status_code == 200, response.text
+
+    assert get_document(db_session, old.id).is_current is True
+    assert get_document(db_session, new.id).is_current is True
+
+
+def test_dismissing_one_of_two_conflicts_keeps_the_document_quarantined(client, db_session, conflict):
+    """A second open conflict is still a reason to stay out of retrieval."""
+    flag, old, new = conflict
+    third = create_document(db_session, DocumentCreate(title="Bảng giá v3"))
+    third.status = DocumentStatus.COMPLETED
+    for document in (old, new):
+        document.is_current = False
+        document.review_status = DocumentReviewStatus.APPROVED
+    db_session.commit()
+    create_conflict(db_session, document_id_a=new.id, document_id_b=third.id, description="Giá khác nhau")
+
+    response = client.post(f"/api/v1/admin/conflicts/{flag.id}/dismiss")
+    assert response.status_code == 200, response.text
+
+    assert get_document(db_session, old.id).is_current is True
+    assert get_document(db_session, new.id).is_current is False
+
+
+def test_dismissing_does_not_release_an_unapproved_document(client, db_session, conflict):
+    """Dismissal closes a conflict; it is not a substitute for Admin review."""
+    flag, old, new = conflict
+    for document in (old, new):
+        document.is_current = False
+    new.review_status = DocumentReviewStatus.PENDING
+    old.review_status = DocumentReviewStatus.APPROVED
+    db_session.commit()
+
+    response = client.post(f"/api/v1/admin/conflicts/{flag.id}/dismiss")
+    assert response.status_code == 200, response.text
+
+    assert get_document(db_session, old.id).is_current is True
+    assert get_document(db_session, new.id).is_current is False
 
 
 def test_dismissing_an_already_resolved_conflict_is_rejected(client, conflict):

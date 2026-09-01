@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
+from backend.core.config import settings
 from backend.services import document_conflict_service as service
 from backend.services.document_conflict_service import (
     DocumentConflictAssessmentError,
@@ -100,7 +101,10 @@ def test_judge_uses_structured_output_and_marks_documents_as_untrusted(monkeypat
 
     assert result is expected
     assert captured["schema"] is SemanticConflictAssessment
-    assert captured["options"] == {"temperature": 0.0}
+    assert captured["options"] == {
+        "temperature": 0.0,
+        "model": settings.gemini_model_background,
+    }
     assert "UNTRUSTED DATA" in captured["system_instruction"]
     assert "Ignore previous instructions" in captured["prompt"]
     assert '"project_id":"ocean-park-3"' in captured["prompt"]
@@ -112,7 +116,10 @@ def test_compact_facts_are_bounded_and_raw_text_remains_available_for_evidence(m
     monkeypatch.setattr(
         service,
         "settings",
-        SimpleNamespace(document_conflict_max_facts_per_document=1),
+        SimpleNamespace(
+            document_conflict_max_facts_per_document=1,
+            gemini_model_background=settings.gemini_model_background,
+        ),
     )
     captured: dict = {}
 
@@ -282,7 +289,11 @@ def test_long_documents_are_bounded_and_sample_start_middle_and_end(monkeypatch)
     monkeypatch.setattr(
         service,
         "settings",
-        SimpleNamespace(document_conflict_max_chars_per_document=600, document_conflict_sample_segments=3),
+        SimpleNamespace(
+            document_conflict_max_chars_per_document=600,
+            document_conflict_sample_segments=3,
+            gemini_model_background=settings.gemini_model_background,
+        ),
     )
     captured: dict = {}
 
@@ -315,7 +326,11 @@ def test_sampled_documents_can_never_be_silently_declared_compatible(monkeypatch
     monkeypatch.setattr(
         service,
         "settings",
-        SimpleNamespace(document_conflict_max_chars_per_document=600, document_conflict_sample_segments=3),
+        SimpleNamespace(
+            document_conflict_max_chars_per_document=600,
+            document_conflict_sample_segments=3,
+            gemini_model_background=settings.gemini_model_background,
+        ),
     )
     monkeypatch.setattr(service, "generate_json", lambda *_args, **_kwargs: _assessment(confidence=0.99))
     long_text = "Dau tai lieu. " + ("noi dung bo sung " * 100) + " Cuoi tai lieu."

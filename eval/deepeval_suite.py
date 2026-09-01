@@ -16,7 +16,7 @@ what DeepEval is asked to measure.
 "Who judges the judge" is answered here in two ways, because the first is not enough on
 its own.
 
-`--judge-model` left at `GEMINI_MODEL` has the model grading its own drafts, which measures
+`--judge-model` left at the answer model has the model grading its own drafts, which measures
 self-consistency more than quality — the first live run scored a flat 1.00 on every metric.
 Pointing it at a different, stronger model buys a second opinion, a sharper grader, and a
 *separate quota bucket* (Gemini counts its per-minute limit per model). That independence is
@@ -193,7 +193,7 @@ class GeminiJudge(DeepEvalBaseLLM):
     DeepEval defaults to OpenAI; this project has no OpenAI key and no reason to acquire
     one. It calls the SDK directly rather than going through `gemini_client` for two
     reasons the eval path does not share with the request path: the judge must be free to
-    run on a *different* model than `GEMINI_MODEL` (see the module docstring), and
+    run on a *different* model than the answer model (see the module docstring), and
     `client_models_generate` books every call into the pipeline's token accounting, where
     eval traffic would show up as production spend on the Admin dashboard.
 
@@ -627,9 +627,9 @@ def main() -> int:
     )
     parser.add_argument(
         "--judge-model",
-        default=settings.GEMINI_MODEL,
+        default=settings.gemini_model_accurate,
         metavar="MODEL",
-        help="model that grades the answers; a different one to GEMINI_MODEL buys independence and its own quota",
+        help="model that grades the answers; a different one to the answer model buys independence and its own quota",
     )
     parser.add_argument(
         "--rpm",
@@ -674,7 +674,7 @@ def main() -> int:
         print("No cases were graded.", file=sys.stderr)
         return 1
 
-    report = build_report(results, judge_model=args.judge_model, answer_model=settings.GEMINI_MODEL)
+    report = build_report(results, judge_model=args.judge_model, answer_model=settings.gemini_model_accurate)
     report["complete"] = len(results) == len(gradeable_cases()) * args.repeats
     args.out.mkdir(parents=True, exist_ok=True)
     report_path = args.out / "deepeval_report.json"

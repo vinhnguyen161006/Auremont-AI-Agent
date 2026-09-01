@@ -127,7 +127,7 @@ def refresh_summary(db: Session, customer_id: int) -> CustomerConversationSummar
             last_processed_message_id=latest_message_id,
             source_message_count=total_message_count,
             schema_version=SUMMARY_SCHEMA_VERSION,
-            model_name=settings.GEMINI_MODEL,
+            model_name=settings.gemini_model_background,
             generated_at=now,
             updated_at=now,
         )
@@ -138,7 +138,7 @@ def refresh_summary(db: Session, customer_id: int) -> CustomerConversationSummar
         record.last_processed_message_id = latest_message_id
         record.source_message_count = total_message_count
         record.schema_version = SUMMARY_SCHEMA_VERSION
-        record.model_name = settings.GEMINI_MODEL
+        record.model_name = settings.gemini_model_background
         record.generated_at = now
         record.updated_at = now
 
@@ -253,13 +253,14 @@ def _generate_next_snapshot(
             CustomerSummarySnapshot,
             system_instruction=_SYSTEM_INSTRUCTION,
             temperature=0.1,
+            model=settings.gemini_model_background,
         )
     except Exception as exc:
         logger.exception(
             "Customer summary LLM request failed.",
             extra={
                 "event": "chat.customer_summary.llm.failed",
-                "model": settings.GEMINI_MODEL,
+                "model": settings.gemini_model_background,
                 "message_count": len(messages),
             },
         )
@@ -269,7 +270,7 @@ def _generate_next_snapshot(
             "Customer summary LLM returned no structured result.",
             extra={
                 "event": "chat.customer_summary.llm.empty",
-                "model": settings.GEMINI_MODEL,
+                "model": settings.gemini_model_background,
                 "message_count": len(messages),
             },
         )

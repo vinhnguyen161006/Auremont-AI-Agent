@@ -4,6 +4,7 @@ import pytest
 from google.genai import errors as genai_errors
 from pydantic import ValidationError
 
+from backend.core.config import settings
 from backend.core.enums import DocumentCategory, LegalStatus
 from backend.services import document_classification_service as classification_service
 from backend.services.document_classification_service import (
@@ -61,7 +62,10 @@ def test_classifier_uses_gemini_structured_output_as_the_authoritative_result(mo
     assert "CHÍNH SÁCH BÁN HÀNG" in call["prompt"]
     assert "KHÔNG ĐÁNG TIN CẬY" in call["system_instruction"]
     assert "subdivision_info" in call["system_instruction"]
-    assert call["generation_options"] == {"temperature": 0.0}
+    assert call["generation_options"] == {
+        "temperature": 0.0,
+        "model": settings.gemini_model_background,
+    }
 
 
 def test_classifier_supplies_catalog_and_accepts_only_an_exact_project_id(monkeypatch):

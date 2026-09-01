@@ -23,7 +23,6 @@ import {
   MenuIcon,
   MoonIcon,
   PlusIcon,
-  SettingsIcon,
   ShieldCheckIcon,
   SunIcon,
   UsersIcon,
@@ -53,7 +52,6 @@ const ADMIN_NAV: AdminNavEntry[] = [
   { to: "/eval", label: "Chất lượng trả lời", icon: ChartIcon, roles: ["admin"] },
   { to: "/conflicts", label: "Cảnh báo mâu thuẫn", icon: AlertIcon, roles: ["admin"] },
   { to: "/billing-requests", label: "Đăng ký doanh nghiệp", icon: BuildingIcon, roles: ["admin"] },
-  { to: "/settings", label: "Cài đặt chung", icon: SettingsIcon, roles: ["admin"] },
 ];
 
 // Ocean Park 1 is the only mega-project with real data so far — its product types

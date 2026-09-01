@@ -69,7 +69,7 @@ def _run(
     monkeypatch.setattr(agent_pipeline, "query_needs_inventory", lambda query: False)
     monkeypatch.setattr(agent_pipeline.risk_service, "detect_commitment_risk", lambda answer: False)
 
-    def _generate_json(prompt, schema, system_instruction=None):
+    def _generate_json(prompt, schema, system_instruction=None, **_kwargs):
         seen.append(prompt)
         return schema(text="- Chinh sach thanh toan chia 5 dot.")
 

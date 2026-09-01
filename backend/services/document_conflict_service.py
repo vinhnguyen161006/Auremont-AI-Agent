@@ -219,6 +219,7 @@ def assess_semantic_conflict(
             SemanticConflictAssessment,
             system_instruction=_SYSTEM_INSTRUCTION,
             temperature=0.0,
+            model=settings.gemini_model_background,
         )
     except Exception as exc:
         logger.exception(

@@ -78,7 +78,7 @@ def test_incremental_refresh_reuses_metadata_and_only_sends_new_messages(db_sess
 
     prompts: list[dict] = []
 
-    def fake_generate(prompt, schema, system_instruction=None, temperature=None):
+    def fake_generate(prompt, schema, system_instruction=None, temperature=None, **_kwargs):
         assert schema is CustomerSummarySnapshot
         assert system_instruction
         assert temperature == 0.1

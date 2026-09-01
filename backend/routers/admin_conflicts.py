@@ -25,6 +25,7 @@ from backend.services.cache_service import clear_cache
 from backend.services.conflict_severity_service import ConflictSeverity, classify_conflict_severity
 from backend.services.vector_store_service import (
     VectorStoreError,
+    document_vector_metadata_snapshot,
     log_and_swallow_restore_failure,
     restore_document_vector_metadata,
     sync_document_vector_metadata,
@@ -203,7 +204,7 @@ async def dismiss_conflict_flag(
 ) -> ConflictFlagResponse:
     """Close a conflict without blocking either document — both keep participating in RAG."""
     try:
-        conflict = dismiss_conflict(db, conflict_id, resolved_by=admin.id)
+        conflict, released = dismiss_conflict(db, conflict_id, resolved_by=admin.id, commit=False)
     except ValueError as exc:
         db.rollback()
         if "already been resolved" in str(exc):
@@ -216,6 +217,36 @@ async def dismiss_conflict_flag(
             detail="Conflict could not be dismissed.",
         ) from exc
 
+    # Qdrant is mirrored before the commit so a vector failure leaves the conflict open and
+    # the documents quarantined, rather than marking them retrievable in MySQL alone.
+    previous_vector_metadata = {
+        document.id: document_vector_metadata_snapshot(document) for document in released
+    }
+    attempted_vector_ids: set[int] = set()
+    try:
+        for document in released:
+            attempted_vector_ids.add(document.id)
+            sync_document_vector_metadata(document)
+    except VectorStoreError as exc:
+        try:
+            _restore_vector_metadata(previous_vector_metadata, attempted_vector_ids)
+        finally:
+            db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Conflict was not dismissed because document retrieval metadata could not be synchronised.",
+        ) from exc
+
+    try:
+        db.commit()
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Conflict could not be dismissed.",
+        ) from exc
+
+    db.refresh(conflict)
     clear_cache()
     return ConflictFlagResponse.model_validate(conflict).model_copy(update={"severity": _severity(conflict)})
 

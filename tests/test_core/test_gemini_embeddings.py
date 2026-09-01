@@ -21,6 +21,19 @@ class FakeGeminiClient:
         self.models = FakeModels(vectors)
 
 
+@pytest.fixture(autouse=True)
+def _clean_query_embedding_cache():
+    """`embed_query` memoises per process, so a cached vector would leak between tests.
+
+    Without this, a test that embeds a query successfully hands the next test a cache hit
+    instead of the API call it is asserting on — the retry tests below share a query string
+    and silently stopped exercising the retry loop.
+    """
+    gemini_client.clear_query_embedding_cache()
+    yield
+    gemini_client.clear_query_embedding_cache()
+
+
 def _rate_limit_error(retry_delay: str = "5s") -> genai_errors.ClientError:
     """Shaped exactly like the real 429 response captured in production logs."""
     body = {
@@ -154,3 +167,69 @@ def test_retry_delay_seconds_parses_the_api_suggestion():
 def test_retry_delay_seconds_falls_back_when_shape_is_unexpected():
     malformed = genai_errors.ClientError(429, {"error": {"code": 429}})
     assert gemini_client.retry_delay_seconds(malformed) == gemini_client._DEFAULT_RETRY_DELAY_SECONDS
+
+
+def test_repeated_query_is_embedded_once(monkeypatch):
+    """Embedding is the dominant cost of retrieval; an identical query must not pay twice."""
+    fake_client = FakeGeminiClient([[0.1, 0.2, 0.3]])
+    monkeypatch.setattr(gemini_client, "get_gemini_client", lambda: fake_client)
+    monkeypatch.setattr(gemini_client.settings, "embedding_model", "gemini-embedding-001")
+    monkeypatch.setattr(gemini_client.settings, "embedding_dimensions", 3)
+
+    first = gemini_client.embed_query("gia can 2PN")
+    second = gemini_client.embed_query("gia can 2PN")
+
+    assert first == second == [0.1, 0.2, 0.3]
+    assert len(fake_client.models.calls) == 1
+
+
+def test_cached_embedding_is_not_shared_between_callers(monkeypatch):
+    """Callers hand the vector to Qdrant clients that may mutate it in place."""
+    fake_client = FakeGeminiClient([[0.1, 0.2, 0.3]])
+    monkeypatch.setattr(gemini_client, "get_gemini_client", lambda: fake_client)
+    monkeypatch.setattr(gemini_client.settings, "embedding_model", "gemini-embedding-001")
+    monkeypatch.setattr(gemini_client.settings, "embedding_dimensions", 3)
+
+    first = gemini_client.embed_query("gia can 2PN")
+    first.append(999.0)
+
+    assert gemini_client.embed_query("gia can 2PN") == [0.1, 0.2, 0.3]
+
+
+def test_different_queries_are_embedded_separately(monkeypatch):
+    fake_client = FakeGeminiClient([[0.1, 0.2, 0.3]])
+    monkeypatch.setattr(gemini_client, "get_gemini_client", lambda: fake_client)
+    monkeypatch.setattr(gemini_client.settings, "embedding_model", "gemini-embedding-001")
+    monkeypatch.setattr(gemini_client.settings, "embedding_dimensions", 3)
+
+    gemini_client.embed_query("gia can 2PN")
+    gemini_client.embed_query("gia can 3PN")
+
+    assert len(fake_client.models.calls) == 2
+
+
+def test_changing_the_model_does_not_serve_the_old_vector(monkeypatch):
+    """A vector from another model/dimension is not interchangeable with this one."""
+    fake_client = FakeGeminiClient([[0.1, 0.2, 0.3]])
+    monkeypatch.setattr(gemini_client, "get_gemini_client", lambda: fake_client)
+    monkeypatch.setattr(gemini_client.settings, "embedding_model", "gemini-embedding-001")
+    monkeypatch.setattr(gemini_client.settings, "embedding_dimensions", 3)
+    gemini_client.embed_query("gia can 2PN")
+
+    monkeypatch.setattr(gemini_client.settings, "embedding_model", "gemini-embedding-002")
+    gemini_client.embed_query("gia can 2PN")
+
+    assert len(fake_client.models.calls) == 2
+
+
+def test_cache_is_bounded(monkeypatch):
+    fake_client = FakeGeminiClient([[0.1, 0.2, 0.3]])
+    monkeypatch.setattr(gemini_client, "get_gemini_client", lambda: fake_client)
+    monkeypatch.setattr(gemini_client.settings, "embedding_model", "gemini-embedding-001")
+    monkeypatch.setattr(gemini_client.settings, "embedding_dimensions", 3)
+    monkeypatch.setattr(gemini_client, "_QUERY_EMBED_CACHE_SIZE", 4)
+
+    for index in range(10):
+        gemini_client.embed_query(f"query {index}")
+
+    assert len(gemini_client._query_embed_cache) <= 4

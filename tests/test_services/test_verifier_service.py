@@ -39,7 +39,7 @@ def judge(monkeypatch):
     calls = []
 
     def _stub(verdict: VerifierResult | None):
-        def _generate_json(prompt, schema, system_instruction=None):
+        def _generate_json(prompt, schema, system_instruction=None, **_kwargs):
             calls.append(prompt)
             return verdict
 

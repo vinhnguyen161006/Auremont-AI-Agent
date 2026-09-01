@@ -378,12 +378,24 @@ def dismiss_conflict(
     resolved_by: int | None = None,
     *,
     commit: bool = True,
-) -> ConflictFlag:
-    """Close a conflict flag while keeping both documents as-is.
+) -> tuple[ConflictFlag, list[Document]]:
+    """Close a conflict flag and let both documents back into retrieval.
 
-    Used when the Admin decides the two sources are not actually in conflict
-    (e.g. they apply to different scopes or periods), so neither document
-    should be blocked or have its `is_current` flag touched.
+    Used when the Admin decides the two sources are not actually in conflict (e.g. they
+    apply to different scopes or periods), so neither document is blocked or superseded.
+
+    Neither document's `status` is touched — nothing is blocked here. What this does clear
+    is the retrieval quarantine: a document is held out of RAG with `is_current = False`
+    while a conflict is open, and dismissing the last conflict is precisely the decision
+    that it belongs back in. Leaving the flag alone meant "Giữ cả 2 file" closed the
+    warning while both files stayed invisible to retrieval forever — the one outcome the
+    action promises not to produce.
+
+    A document is only released when no *other* conflict still holds it open, so
+    dismissing one of two conflicts keeps it quarantined for the second, exactly as
+    `resolve_conflict` treats its winner. Returns the documents whose flag changed so the
+    caller can mirror them into Qdrant; MySQL and the vector store must agree about what
+    is retrievable.
     """
     conflict = db.query(ConflictFlag).filter(ConflictFlag.id == conflict_id).with_for_update().first()
     if conflict is None:
@@ -394,13 +406,54 @@ def dismiss_conflict(
     conflict.status = ConflictStatus.RESOLVED
     conflict.resolved_at = utcnow()
     conflict.resolved_by = resolved_by
+    db.flush()
+
+    documents = (
+        db.query(Document)
+        .filter(Document.id.in_(sorted({conflict.document_id_a, conflict.document_id_b})))
+        .order_by(Document.id)
+        .populate_existing()
+        .with_for_update()
+        .all()
+    )
+
+    released: list[Document] = []
+    for document in documents:
+        if document.is_current or document.status != DocumentStatus.COMPLETED:
+            continue
+        if document.review_status != DocumentReviewStatus.APPROVED:
+            continue
+        if _has_other_open_conflict(db, document_id=document.id, excluding_conflict_id=conflict_id):
+            continue
+        document.is_current = True
+        released.append(document)
 
     if commit:
         db.commit()
         db.refresh(conflict)
+        for document in released:
+            db.refresh(document)
     else:
         db.flush()
-    return conflict
+    return conflict, released
+
+
+def _has_other_open_conflict(db: Session, *, document_id: int, excluding_conflict_id: int) -> bool:
+    """Whether any conflict other than this one still holds `document_id` open."""
+    return (
+        db.query(ConflictFlag.id)
+        .filter(
+            ConflictFlag.id != excluding_conflict_id,
+            ConflictFlag.status == ConflictStatus.OPEN,
+            or_(
+                ConflictFlag.document_id_a == document_id,
+                ConflictFlag.document_id_b == document_id,
+            ),
+        )
+        .with_for_update()
+        .first()
+        is not None
+    )
 
 
 def _resolve_open_conflicts_between_blocked_documents(

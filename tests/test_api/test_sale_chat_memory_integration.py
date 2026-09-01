@@ -68,7 +68,7 @@ def wired_pipeline(monkeypatch):
             }
         ]
 
-    def fake_generate(prompt: str, schema, system_instruction: str | None = None):
+    def fake_generate(prompt: str, schema, system_instruction: str | None = None, **_kwargs):
         prompts_seen.append(prompt)
         return schema(text="Can 2PN gia 3.6 ty dong.")
 

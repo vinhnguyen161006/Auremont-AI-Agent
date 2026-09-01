@@ -31,6 +31,7 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 
 from backend.ai import intent
+from backend.core.config import settings
 from backend.core.enums import LeadPurpose, LeadTier, LeadUrgency
 from backend.core.gemini_client import generate_json
 from backend.services import memory_service, search_criteria
@@ -343,6 +344,7 @@ def enrich_with_llm(customer_turns: list[str]) -> LeadSoftSignals | None:
             _PROMPT.format(turns="\n".join(f"- {turn}" for turn in customer_turns)),
             LeadSoftSignals,
             system_instruction=_SYSTEM_INSTRUCTION,
+            model=settings.gemini_model_fast,
         )
     except Exception:
         logger.warning("Lead soft-signal pass failed; keeping the rule score.", exc_info=True)

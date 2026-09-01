@@ -90,3 +90,39 @@ def test_citation_ranking_without_answer_preserves_retrieval_order():
     citations = _citations_for(docs)
 
     assert citations[0]["page"] == 2
+
+
+def test_answer_evidenced_by_one_project_keeps_its_citation_despite_mixed_hits():
+    """The span that matters is what the answer used, not what retrieval returned.
+
+    With a corpus of a dozen projects the top hits nearly always span several, so judging
+    ambiguity on the raw hit list left grounded answers with no visible source at all.
+    """
+    docs = [
+        _doc(1, "beverly-gia.pdf", "the-beverly", content="Gia ban can 2PN la 5.2 ty dong."),
+        _doc(2, "zurich-gia.pdf", "the-zurich", content="Gia ban can 3PN la 7.9 ty dong."),
+    ]
+
+    citations = _citations_for(docs, answer="Can 2PN tai The Beverly co gia 5.2 ty dong.")
+
+    assert [citation["document_id"] for citation in citations] == [1]
+
+
+def test_answer_evidenced_across_projects_still_drops_citations():
+    """Two projects genuinely used at once remains the ambiguous case worth suppressing."""
+    docs = [
+        _doc(1, "beverly-gia.pdf", "the-beverly", content="Gia ban can 2PN la 5.2 ty dong."),
+        _doc(2, "zurich-gia.pdf", "the-zurich", content="Gia ban can 3PN la 7.9 ty dong."),
+    ]
+
+    assert _citations_for(docs, answer="The Beverly 5.2 ty dong, The Zurich 7.9 ty dong.") == []
+
+
+def test_unattributable_answer_falls_back_to_the_conservative_rule():
+    """No numeric overlap with any doc: nothing to disambiguate with, so keep dropping."""
+    docs = [
+        _doc(1, "beverly.pdf", "the-beverly", content="Gia ban can 2PN la 5.2 ty dong."),
+        _doc(2, "zurich.pdf", "the-zurich", content="Gia ban can 3PN la 7.9 ty dong."),
+    ]
+
+    assert _citations_for(docs, answer="Anh vui long cho biet du an quan tam.") == []

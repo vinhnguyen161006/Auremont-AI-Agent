@@ -27,8 +27,30 @@ def _run(**overrides) -> dict:
     return base | overrides
 
 
-def test_answered_run_without_citations_fails():
+def test_answered_run_without_any_retrieved_evidence_fails():
     assert not grade_answered_runs_are_grounded(_run(citation_count=0)).passed
+
+
+def test_answered_run_is_grounded_when_retrieval_returned_docs_but_chips_were_suppressed():
+    """`_citations_for` drops chips when hits span projects; the answer is still grounded."""
+    run = _run(citation_count=0, steps=[{"name": "retrieve", "doc_count": 5}])
+
+    assert grade_answered_runs_are_grounded(run).passed
+
+
+def test_answered_run_needing_no_retrieval_is_not_judged_on_evidence():
+    run = _run(citation_count=0, steps=[{"name": "intent", "needs_document_retrieval": False}])
+
+    assert grade_answered_runs_are_grounded(run).passed
+
+
+def test_answered_run_that_needed_retrieval_but_got_nothing_fails():
+    run = _run(
+        citation_count=0,
+        steps=[{"name": "intent", "needs_document_retrieval": True}, {"name": "retrieve", "doc_count": 0}],
+    )
+
+    assert not grade_answered_runs_are_grounded(run).passed
 
 
 def test_answered_run_with_citations_passes():
@@ -92,12 +114,39 @@ def test_corrected_retry_passes():
     assert grade_retries_carry_a_correction(run).passed
 
 
-def test_latency_over_budget_fails():
-    assert not grade_latency_within_budget(_run(duration_ms=5200.0)).passed
+def test_latency_over_end_to_end_budget_fails():
+    assert not grade_latency_within_budget(_run(duration_ms=42000.0)).passed
 
 
 def test_latency_within_budget_passes():
     assert grade_latency_within_budget(_run(duration_ms=2900.0)).passed
+
+
+def test_slow_run_dominated_by_model_time_passes():
+    """26s end to end, but 24s of it was the model — not a pipeline regression."""
+    run = _run(duration_ms=26000.0, steps=[{"name": "generate", "duration_ms": 24000.0}])
+
+    assert grade_latency_within_budget(run).passed
+
+
+def test_pipeline_overhead_over_budget_fails_even_under_the_end_to_end_budget():
+    """Same 26s, but only 2s was the model: retrieval and tools burned the rest."""
+    run = _run(duration_ms=26000.0, steps=[{"name": "generate", "duration_ms": 2000.0}])
+
+    result = grade_latency_within_budget(run)
+
+    assert not result.passed
+    assert "overhead" in result.detail
+
+
+def test_verifier_judge_time_is_model_time_not_pipeline_overhead():
+    """`verify` is the Verifier LLM; its latency is the vendor's, not the pipeline's."""
+    run = _run(
+        duration_ms=26000.0,
+        steps=[{"name": "generate", "duration_ms": 20000.0}, {"name": "verify", "duration_ms": 4000.0}],
+    )
+
+    assert grade_latency_within_budget(run).passed
 
 
 def test_report_counts_every_grader_against_every_run():

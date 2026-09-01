@@ -242,7 +242,12 @@ def score_answer(query: str, draft_answer: str, retrieved_context: list[str]) ->
     )
 
     try:
-        result = generate_json(prompt, VerifierResult, system_instruction=_JUDGE_SYSTEM_INSTRUCTION)
+        result = generate_json(
+            prompt,
+            VerifierResult,
+            system_instruction=_JUDGE_SYSTEM_INSTRUCTION,
+            model=settings.gemini_model_fast,
+        )
     except Exception:
         logger.exception(
             "Judge LLM call failed; scoring 0.0 (fail closed).",
