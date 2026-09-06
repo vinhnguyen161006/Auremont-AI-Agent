@@ -103,7 +103,7 @@ def test_dismissing_blocks_neither_document(client, db_session, conflict):
 
 
 def test_dismissing_returns_quarantined_documents_to_retrieval(client, db_session, conflict):
-    """"Giữ cả 2 file" must actually let both files back into RAG.
+    """ "Giữ cả 2 file" must actually let both files back into RAG.
 
     A document waits out its conflict with `is_current = False`, so closing the last
     conflict without clearing that flag left the warning gone and both files permanently

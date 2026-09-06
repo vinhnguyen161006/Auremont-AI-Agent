@@ -152,9 +152,7 @@ def _strip_schema_constraints(node: Any) -> Any:
     """Recursively drop serving-hostile validation keywords from a JSON-schema fragment."""
     if isinstance(node, dict):
         return {
-            key: _strip_schema_constraints(value)
-            for key, value in node.items()
-            if key not in _SERVING_HOSTILE_KEYS
+            key: _strip_schema_constraints(value) for key, value in node.items() if key not in _SERVING_HOSTILE_KEYS
         }
     if isinstance(node, list):
         return [_strip_schema_constraints(item) for item in node]

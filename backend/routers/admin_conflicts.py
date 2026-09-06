@@ -219,9 +219,7 @@ async def dismiss_conflict_flag(
 
     # Qdrant is mirrored before the commit so a vector failure leaves the conflict open and
     # the documents quarantined, rather than marking them retrievable in MySQL alone.
-    previous_vector_metadata = {
-        document.id: document_vector_metadata_snapshot(document) for document in released
-    }
+    previous_vector_metadata = {document.id: document_vector_metadata_snapshot(document) for document in released}
     attempted_vector_ids: set[int] = set()
     try:
         for document in released:

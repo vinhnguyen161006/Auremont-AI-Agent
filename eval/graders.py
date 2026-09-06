@@ -86,9 +86,7 @@ def grade_answered_runs_are_grounded(run: dict[str, Any]) -> GradeResult:
     if run.get("citation_count", 0) > 0:
         return GradeResult(name, True)
 
-    retrieved = sum(
-        step["doc_count"] for step in _steps(run, "retrieve") if isinstance(step.get("doc_count"), int)
-    )
+    retrieved = sum(step["doc_count"] for step in _steps(run, "retrieve") if isinstance(step.get("doc_count"), int))
     if retrieved > 0:
         return GradeResult(name, True)
 
