@@ -9,7 +9,7 @@ from backend.models.user import User
 from backend.repositories.chat_session import get_session
 from backend.repositories.hitl_log import confirm_message
 from backend.repositories.message import get_message
-from backend.schemas.hitl_log import HitlConfirmRequest, HitlLogResponse
+from backend.schemas.chat import HitlConfirmRequest, HitlLogResponse
 
 router = APIRouter(prefix="/hitl", tags=["HITL"], dependencies=[Depends(require_role(UserRole.SALE, UserRole.ADMIN))])
 

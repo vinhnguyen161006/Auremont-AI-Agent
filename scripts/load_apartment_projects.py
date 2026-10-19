@@ -56,10 +56,10 @@ def main() -> None:
             row.description = project_info.get("description")
             row.details = details
 
-            print(f"[db] upsert {slug} - {len(gallery)} anh gallery")
+            print(f"[db] upsert {slug} - {len(gallery)} gallery images")
 
         db.commit()
-        print(f"\nXong - da nap {len(PROJECTS)} du an chung cu.")
+        print(f"\nDone: loaded {len(PROJECTS)} apartment projects.")
     finally:
         db.close()
 

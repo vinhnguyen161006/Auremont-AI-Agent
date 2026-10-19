@@ -28,7 +28,7 @@ The threat model here is not only the usual web surface — the AI pipeline itse
 carries risk that ordinary review misses:
 
 - **Answers touching price or commitments** are gated behind human confirmation
-  (`risk_service` + the HITL card). Any change that lets an answer reach a
+  (`guardrails.detect_commitment_risk` + the HITL card). Any change that lets an answer reach a
   customer without that gate is a security change, not a UX one — including
   changes to the cache, which re-runs the gate on the way out.
 - **Document visibility** is enforced twice: on the route and again in the Qdrant

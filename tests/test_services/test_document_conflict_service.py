@@ -5,11 +5,12 @@ import pytest
 from pydantic import ValidationError
 
 from backend.core.config import settings
-from backend.services import document_conflict_service as service
-from backend.services.document_conflict_service import (
+from backend.services.documents import document_conflict_service as service
+from backend.services.documents.document_conflict_service import (
     DocumentConflictAssessmentError,
     SemanticConflictAssessment,
     SemanticConflictEvidence,
+    classify_conflict_severity,
 )
 
 
@@ -406,3 +407,56 @@ def test_schema_rejects_invalid_confidence():
 
     with pytest.raises(ValidationError):
         _assessment(confidence=-0.01)
+
+
+@pytest.mark.parametrize(
+    ("expected", "detection_method", "confidence", "conflict_type", "evidence"),
+    [
+        (
+            "low",
+            "llm",
+            0.98,
+            "policy_terms",
+            {"semantic": {"decision": "uncertain", "confidence": 0.98}},
+        ),
+        (
+            "medium",
+            "llm",
+            0.78,
+            "document_change",
+            {"semantic": {"decision": "conflict", "confidence": 0.78}},
+        ),
+        (
+            "high",
+            "llm",
+            0.95,
+            "policy_terms",
+            {"semantic": {"decision": "conflict", "confidence": 0.95}},
+        ),
+        (
+            "high",
+            "rule",
+            None,
+            "price",
+            {"rule": {"price_differences": [{"fact_key": "unit.price"}]}},
+        ),
+        ("medium", "rule", None, "document_change", None),
+        ("low", "llm", 0.55, None, None),
+    ],
+)
+def test_conflict_severity_is_derived_from_grounded_business_risk(
+    expected,
+    detection_method,
+    confidence,
+    conflict_type,
+    evidence,
+):
+    assert (
+        classify_conflict_severity(
+            detection_method=detection_method,
+            confidence=confidence,
+            conflict_type=conflict_type,
+            evidence=evidence,
+        )
+        == expected
+    )

@@ -47,3 +47,30 @@ jobs:
         env:
           APP_ENV: test
           GEMINI_API_KEY: test-key
+
+  frontend:
+    # The backend job never touches frontend/, so without this a TypeScript error or a
+    # broken import only surfaces when Vercel builds the deploy.
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint with oxlint
+        run: npm run lint
+
+      - name: Type-check and build
+        run: npm run build

@@ -1,11 +1,11 @@
 """add customer chat support
 
-Thêm role Customer: khách hàng ghé thăm công khai (không cần đăng nhập) có thể chat với
-AI, giới hạn ở dữ liệu PUBLIC-tier. `chat_sessions` giờ phục vụ cả 3 kiểu owner — xem
-docstring của model `ChatSession` để biết bất biến (đúng 1 trong 3 cột được set).
+Adds the Customer role: public visitors (no login required) can chat with the AI, limited
+to PUBLIC-tier data. `chat_sessions` now serves all 3 owner kinds — see the `ChatSession`
+model docstring for the invariant (exactly 1 of the 3 columns is set).
 
-`sale_id` chuyển nullable vì một session customer/anonymous không có Sale sở hữu; mọi
-query Sale hiện tại đều lọc `WHERE sale_id = :user.id` nên không ảnh hưởng dữ liệu cũ.
+`sale_id` becomes nullable because a customer/anonymous session has no owning Sale; every
+existing Sale query filters `WHERE sale_id = :user.id`, so existing data is unaffected.
 
 Revision ID: a3b4c5d6e7f8
 Revises: f2a3b4c5d6e7
@@ -46,9 +46,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema.
 
-    Bỏ FK trước rồi mới bỏ cột, không tự drop_index cho customer_id (index đang được FK
-    dùng — MySQL báo lỗi 1553; drop cột sẽ tự dọn). visitor_token không có FK nên index
-    của nó được bỏ tường minh.
+    Drop the FK before the column, and do not drop_index customer_id by hand (the index
+    backs an FK — MySQL raises error 1553; dropping the column cleans it up). visitor_token
+    has no FK, so its index is dropped explicitly.
     """
     with op.batch_alter_table("chat_sessions") as batch_op:
         batch_op.drop_constraint("fk_chat_sessions_customer_id_users", type_="foreignkey")

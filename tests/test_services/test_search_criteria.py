@@ -13,8 +13,8 @@ import json
 
 import pytest
 
-from backend.services import search_criteria as sc
-from backend.services.inventory_service import InventoryUnit
+from backend.services.chat import search_criteria as sc
+from backend.services.chat.inventory_service import InventoryUnit
 
 
 class _FakeRedis:
@@ -70,7 +70,7 @@ def test_explicit_bounds_are_parsed_as_hard_and_explicit():
 
 
 def test_vague_price_becomes_a_band_marked_inferred():
-    """'Tầm 3 tỷ' phải thành khoảng đo được, và đánh dấu là hệ thống tự suy."""
+    """'Tầm 3 tỷ' must become a measurable range, marked as inferred by the system."""
     criteria = _criteria("tìm căn tầm 3 tỷ")
 
     assert criteria.get("price").value == (2_550_000_000.0, 3_450_000_000.0)
@@ -78,13 +78,13 @@ def test_vague_price_becomes_a_band_marked_inferred():
 
 
 def test_area_is_soft_unless_the_sentence_compels_it():
-    """Ai nói 'phải' thì không được nhận căn bỏ qua điều đó; nhắc thoáng qua thì được."""
+    """When someone says 'phải', units that ignore it must not be accepted; a passing mention may be."""
     assert _criteria("tìm căn 80m2").get("area").strength == sc.Strength.SOFT
     assert _criteria("phải có ít nhất 80m2").get("area").strength == sc.Strength.HARD
 
 
 def test_adjustment_phrasing_sets_a_ceiling_in_both_directions():
-    """'Tăng giá lên 5 tỷ' là nới trần lên 5 tỷ, KHÔNG phải đòi căn từ 5 tỷ trở lên."""
+    """'Tăng giá lên 5 tỷ' raises the ceiling to 5 billion; it does NOT ask for units from 5 billion up."""
     assert _criteria("tăng giá lên 5 tỷ").get("price").value == (0.0, 5_000_000_000.0)
     assert _criteria("giảm xuống 3 tỷ").get("price").value == (0.0, 3_000_000_000.0)
 
@@ -111,10 +111,10 @@ def test_supported_sort_language_is_parsed():
 
 
 def test_keeping_conditions_while_raising_price():
-    """Ca hồi quy chính của cases.md §20.
+    """The main regression case from cases.md §20.
 
-    Trước khi có module này, lượt thứ hai parse lại từ đầu và mất hẳn 3PN — khách phải
-    nhắc lại toàn bộ điều kiện mỗi lượt, đúng thứ họ vừa bảo là "giữ nguyên".
+    Before this module, the second turn was parsed from scratch and lost 3PN entirely — the
+    customer had to repeat every condition each turn, exactly what they had just asked to "keep".
     """
     first = _criteria("còn căn 3PN nào dưới 4 tỷ không")
     second = _criteria("giữ nguyên điều kiện, tăng giá lên 5 tỷ", first)
@@ -147,7 +147,7 @@ def test_cheaper_resolves_against_the_existing_ceiling():
 
 
 def test_cheaper_with_no_anchor_is_left_unresolved():
-    """Không có gì để neo vào thì phải hỏi lại, không được bịa ra một mức giá."""
+    """With nothing to anchor to, ask again instead of inventing a price level."""
     delta = sc.parse_criteria("tìm căn giá mềm")
 
     assert "giá" in delta.unresolved_vague
@@ -165,7 +165,7 @@ def test_bedrooms_impossible_within_area_cap_is_reported():
 
 
 def test_a_workable_search_reports_no_conflict():
-    """Báo nhầm mâu thuẫn tốn của khách nguyên một lượt cho một tìm kiếm vốn chạy được."""
+    """A false conflict report costs the customer a whole turn for a search that would have worked."""
     assert sc.detect_conflict(_criteria("căn 3PN dưới 5 tỷ trên 80m2")) is None
     assert sc.detect_conflict(sc.SearchCriteria()) is None
 
@@ -178,8 +178,8 @@ def test_criteria_survive_a_round_trip(fake_redis):
 
 
 def test_open_ended_bounds_serialise_as_valid_json(fake_redis):
-    """`inf` viết thẳng ra JSON thành token `Infinity` — Python đọc được, phần còn lại
-    của thế giới thì không. 'Trên 3 tỷ' là câu thường gặp, nên đây là ca thật."""
+    """`inf` written straight to JSON becomes the token `Infinity` — Python can read it, the
+    rest of the world cannot. 'Trên 3 tỷ' is a common phrase, so this is a real case."""
     sc.save(1, _criteria("căn trên 3 tỷ"), [])
     raw = fake_redis.store[sc.session_key(1)]
 
@@ -205,8 +205,8 @@ def test_undo_with_nothing_to_undo_is_harmless(fake_redis):
 
 
 def test_identical_turns_do_not_fill_the_undo_stack(fake_redis):
-    """Nếu lượt không đổi gì mà vẫn đẩy snapshot, 'quay lại bộ lọc cũ' sẽ lùi qua một
-    loạt trạng thái giống hệt nhau và trông như không làm gì."""
+    """If a turn that changes nothing still pushes a snapshot, 'quay lại bộ lọc cũ' steps back
+    through a run of identical states and appears to do nothing."""
     sc.resolve(1, "căn 3PN dưới 4 tỷ")
     sc.resolve(1, "căn 3PN dưới 4 tỷ")
 
@@ -260,9 +260,9 @@ def _unit(code, unit_type, area, price, status="available", subdivision="The Pal
 
 
 def test_soft_constraints_never_exclude_a_unit():
-    """Ưu tiên là để xếp hạng, không phải để loại — gộp hai thứ này là cách nhanh nhất
-    để trả về 0 kết quả."""
-    from backend.services.inventory_service import apply_criteria
+    """Preferences are for ranking, not for excluding — mixing the two is the fastest way
+    to return 0 results."""
+    from backend.services.chat.inventory_service import apply_criteria
 
     units = [_unit("A-01", "2PN", 60.0, 3_000_000_000.0)]
     criteria = sc.SearchCriteria(constraints=(sc.Constraint(sc.FIELD_AREA, (100.0, 200.0), sc.Strength.SOFT),))
@@ -271,7 +271,7 @@ def test_soft_constraints_never_exclude_a_unit():
 
 
 def test_hard_constraints_exclude():
-    from backend.services.inventory_service import apply_criteria
+    from backend.services.chat.inventory_service import apply_criteria
 
     units = [
         _unit("A-01", "2PN", 60.0, 3_000_000_000.0),
@@ -283,9 +283,9 @@ def test_hard_constraints_exclude():
 
 
 def test_advisory_fields_do_not_filter_anything():
-    """Tiện ích không có trong InventoryUnit — nếu đem đi lọc sẽ khớp 0 căn và làm rỗng
-    toàn bộ kết quả, thay vì được chuyển cho model đối chiếu tài liệu."""
-    from backend.services.inventory_service import apply_criteria
+    """Amenities are not in InventoryUnit — filtering on them would match 0 units and empty
+    the whole result, instead of handing them to the model to check against documents."""
+    from backend.services.chat.inventory_service import apply_criteria
 
     units = [_unit("A-01", "2PN", 60.0, 3_000_000_000.0)]
     criteria = sc.SearchCriteria(required_features=("hồ bơi",))
@@ -294,7 +294,7 @@ def test_advisory_fields_do_not_filter_anything():
 
 
 def test_excluded_constraint_removes_matches_instead_of_selecting_them():
-    from backend.services.inventory_service import apply_criteria
+    from backend.services.chat.inventory_service import apply_criteria
 
     units = [
         _unit("A-01", "2PN", 60.0, 3_000_000_000.0),
@@ -345,7 +345,7 @@ def test_typographic_area_range_and_open_ended_view_preferences_are_preserved():
 
 
 def test_structured_direction_and_view_preferences_rank_confirmed_then_unknown():
-    from backend.services.inventory_service import apply_criteria, format_preference_coverage
+    from backend.services.chat.inventory_service import apply_criteria, format_preference_coverage
 
     units = [
         InventoryUnit(
@@ -382,7 +382,7 @@ def test_structured_direction_and_view_preferences_rank_confirmed_then_unknown()
 
 
 def test_mandatory_direction_and_view_filter_exact_inventory_fields():
-    from backend.services.inventory_service import apply_criteria
+    from backend.services.chat.inventory_service import apply_criteria
 
     units = [
         InventoryUnit(
@@ -411,7 +411,7 @@ def test_excluded_feature_is_advisory_but_kept_for_the_prompt():
 
 
 def test_supported_sort_is_applied_after_filtering():
-    from backend.services.inventory_service import apply_criteria
+    from backend.services.chat.inventory_service import apply_criteria
 
     units = [
         _unit("A-02", "2PN", 80.0, 4_000_000_000.0),
@@ -496,7 +496,7 @@ def test_mixed_included_and_excluded_property_types_remain_separate():
 
 
 def test_minimum_bedroom_language_matches_larger_layouts_too():
-    from backend.services.inventory_service import apply_criteria
+    from backend.services.chat.inventory_service import apply_criteria
 
     criteria = _criteria("Cần ít nhất 3 phòng ngủ")
     units = [

@@ -14,7 +14,7 @@ from backend.core.enums import (
 from backend.models.conflict_flag import ConflictFlag
 from backend.models.document import Document
 from backend.models.document_relation import DocumentRelation
-from backend.services.vector_store_service import document_vector_metadata_snapshot
+from backend.services.documents.vector_store_service import document_vector_metadata_snapshot
 from backend.utils.time import utcnow
 
 DetectionMethod = Literal["rule", "llm", "hybrid"]

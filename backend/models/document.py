@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Any
 
 from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,9 +18,9 @@ from backend.utils.time import utcnow
 class Document(Base):
     """A file in the knowledge base.
 
-    File có thể là chính sách bán hàng, bảng giá, thông tin phân khu,
-    tài liệu pháp lý hoặc tài liệu nội bộ. Metadata được AI đề xuất và
-    Admin xác nhận trước khi tài liệu được dùng để trả lời.
+    A file can be a sales policy, a price list, subdivision information, a legal
+    document or an internal document. Its metadata is proposed by the AI and
+    confirmed by an Admin before the document is used to answer questions.
     """
 
     __tablename__ = "documents"
@@ -119,3 +120,28 @@ class Document(Base):
         index=True,
     )
     is_current: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+
+
+# Compatibility helpers for primary and multi-label document categories.
+
+
+def document_categories(document: Any) -> list[str]:
+    """Return stable, deduplicated labels while supporting pre-migration rows."""
+
+    primary = str(getattr(document, "category", None) or DocumentCategory.OTHER)
+    raw = getattr(document, "categories", None)
+    values = [primary, *(raw if isinstance(raw, list) else [])]
+    result: list[str] = []
+    for value in values:
+        category = str(value).strip()
+        if category and category not in result:
+            result.append(category)
+    return result or [DocumentCategory.OTHER.value]
+
+
+def document_has_category(document: Any, category: str | DocumentCategory) -> bool:
+    return str(category) in document_categories(document)
+
+
+def documents_share_category(left: Any, right: Any) -> bool:
+    return bool(set(document_categories(left)) & set(document_categories(right)))

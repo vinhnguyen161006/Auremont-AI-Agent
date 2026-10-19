@@ -27,9 +27,8 @@ from backend.repositories.message import (
     history_for_pipeline,
     list_messages_for_session,
 )
-from backend.schemas.chat_session import ChatSessionCreate, ChatSessionResponse
-from backend.schemas.message import ChatText, MessageResponse
-from backend.services import agent_pipeline, memory_service, reflection_memory, search_criteria
+from backend.schemas.chat import ChatSessionCreate, ChatSessionResponse, ChatText, MessageResponse
+from backend.services.chat import agent_pipeline, memory_service, reflection_memory, search_criteria
 
 router = APIRouter(
     prefix="/sale/sessions",

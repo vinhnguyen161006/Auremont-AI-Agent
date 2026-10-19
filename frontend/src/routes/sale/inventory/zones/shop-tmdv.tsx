@@ -3,6 +3,7 @@
 // arrays live here too, since the Shophouse catalogue page reuses them for its
 // common intro block.
 import { FloorPlanTabs, TowerSpotlight, ZoneHeaderBanner } from "../shared";
+import { PROJECT_IMAGES_BASE_URL } from "../../../../config";
 
 // Data for the 4 commercial shophouse rows (SH09/SB11A/HA08/BH9B) — sourced
 // directly from 4 separate crawled JSON files (shop_thuong_mai_*.json); NOT
@@ -49,18 +50,18 @@ export const SHOP_TMDV_PROJECTS: ShopTmdvProject[] = [
       ownership: "Sở hữu 50 năm, được làm sổ hồng ngay",
     },
     locationTabs: [
-      { label: "Vị trí SH09", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sh09/vi-tri-shop-thuong-mai-dich-vu-bien-ho-sh09-vinhomes-ocean-park.jpg" },
-      { label: "Vị trí SH09 (2)", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sh09/vi-tri-shop-thuong-mai-dich-vu-bien-ho-sh09-vinhomes-ocean-park-1.jpg" },
+      { label: "Vị trí SH09", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sh09/vi-tri-shop-thuong-mai-dich-vu-bien-ho-sh09-vinhomes-ocean-park.jpg` },
+      { label: "Vị trí SH09 (2)", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sh09/vi-tri-shop-thuong-mai-dich-vu-bien-ho-sh09-vinhomes-ocean-park-1.jpg` },
     ],
     exteriorTabs: [
-      { label: "Ảnh thực tế", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sh09/shop-tmdv-sh09.jpg" },
-      { label: "Ảnh thực tế (2)", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sh09/sanho_anh_thuc_te_1.jpg" },
-      { label: "Ảnh thực tế (3)", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sh09/sanho_anh_thuc_te_2.jpg" },
-      { label: "Ảnh thực tế (4)", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sh09/sanho_anh_thuc_te_3.jpg" },
-      { label: "Ảnh thực tế (5)", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sh09/sanho_anh_thuc_te_4.jpg" },
+      { label: "Ảnh thực tế", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sh09/shop-tmdv-sh09.jpg` },
+      { label: "Ảnh thực tế (2)", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sh09/sanho_anh_thuc_te_1.jpg` },
+      { label: "Ảnh thực tế (3)", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sh09/sanho_anh_thuc_te_2.jpg` },
+      { label: "Ảnh thực tế (4)", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sh09/sanho_anh_thuc_te_3.jpg` },
+      { label: "Ảnh thực tế (5)", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sh09/sanho_anh_thuc_te_4.jpg` },
     ],
     masterPlanTabs: [
-      { label: "Tổng mặt bằng SH09", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sh09/mat-bang-shop-thuong-mai-dich-vu-bien-ho-sh09-vinhomes-ocean-park-2048x1152.jpg" },
+      { label: "Tổng mặt bằng SH09", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sh09/mat-bang-shop-thuong-mai-dich-vu-bien-ho-sh09-vinhomes-ocean-park-2048x1152.jpg` },
     ],
     businessNote: "Được phép kinh doanh đa dạng ngành nghề: văn phòng, nhà hàng, cafe, cửa hàng và các dịch vụ khác. Vỉa hè rộng được phép sử dụng cho hoạt động kinh doanh.",
   },
@@ -82,13 +83,13 @@ export const SHOP_TMDV_PROJECTS: ShopTmdvProject[] = [
     // The SB11A crawled source has no dedicated "location" image — an overview/
     // rendering image is used instead, rather than fabricating one that doesn't exist.
     locationTabs: [
-      { label: "Tổng quan Thương mại dịch vụ", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sb11a/Tong-quan-Thuong-mai-dich-vu-Vinhomes-Ocean-Park.jpg" },
+      { label: "Tổng quan Thương mại dịch vụ", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sb11a/Tong-quan-Thuong-mai-dich-vu-Vinhomes-Ocean-Park.jpg` },
     ],
     exteriorTabs: [
-      { label: "Ảnh thực tế", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sb11a/shop-tmdv-sb11a-vinhomes-ocean-park.jpg" },
+      { label: "Ảnh thực tế", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sb11a/shop-tmdv-sb11a-vinhomes-ocean-park.jpg` },
     ],
     masterPlanTabs: [
-      { label: "Tổng mặt bằng SB11A", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sb11a/Mat-bang-Thuong-mai-dich-vu-Sao-Bien-Vinhomes-Ocean-Park.jpg" },
+      { label: "Tổng mặt bằng SB11A", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sb11a/Mat-bang-Thuong-mai-dich-vu-Sao-Bien-Vinhomes-Ocean-Park.jpg` },
     ],
     businessNote: "Các căn shop sở hữu thiết kế vuông vắn, mặt tiền rộng và cửa kính lớn, cùng phần không gian vỉa hè rất rộng được phép sử dụng cho việc kinh doanh.",
   },
@@ -108,17 +109,17 @@ export const SHOP_TMDV_PROJECTS: ShopTmdvProject[] = [
       ownership: "Sở hữu 50 năm, làm ngay sổ hồng",
     },
     locationTabs: [
-      { label: "Vị trí HA08", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-ha08/vi-tri-shop-thuong-mai-dich-vu-bien-ho-ha08-vinhomes-ocean-park.jpg" },
-      { label: "Vị trí HA08 (2)", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-ha08/vi-tri-shop-thuong-mai-dich-vu-bien-ho-ha08-vinhomes-ocean-park-1.jpg" },
+      { label: "Vị trí HA08", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-ha08/vi-tri-shop-thuong-mai-dich-vu-bien-ho-ha08-vinhomes-ocean-park.jpg` },
+      { label: "Vị trí HA08 (2)", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-ha08/vi-tri-shop-thuong-mai-dich-vu-bien-ho-ha08-vinhomes-ocean-park-1.jpg` },
     ],
     exteriorTabs: [
-      { label: "Phối cảnh", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-ha08/shop-thuong-mai-dich-vu-hai-au-vinhomes-ocean-park.jpg" },
-      { label: "Ảnh thực tế", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-ha08/shop-thuong-mai-dich-vu-ha08-vinhomes-ocean-park.jpg" },
-      { label: "Ảnh thực tế (2)", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-ha08/mat_b1.jpg" },
-      { label: "Ảnh thực tế (3)", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-ha08/mat_b2.jpg" },
+      { label: "Phối cảnh", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-ha08/shop-thuong-mai-dich-vu-hai-au-vinhomes-ocean-park.jpg` },
+      { label: "Ảnh thực tế", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-ha08/shop-thuong-mai-dich-vu-ha08-vinhomes-ocean-park.jpg` },
+      { label: "Ảnh thực tế (2)", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-ha08/mat_b1.jpg` },
+      { label: "Ảnh thực tế (3)", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-ha08/mat_b2.jpg` },
     ],
     masterPlanTabs: [
-      { label: "Tổng mặt bằng HA08", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-ha08/mat-bang-shop-thuong-mai-dich-vu-bien-ho-ha08-vinhomes-ocean-park-2048x1152.jpg" },
+      { label: "Tổng mặt bằng HA08", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-ha08/mat-bang-shop-thuong-mai-dich-vu-bien-ho-ha08-vinhomes-ocean-park-2048x1152.jpg` },
     ],
     businessNote: "Phân khu Hải Âu quy hoạch 100% shophouse — các căn liền kề và biệt thự đều được phép kinh doanh, tạo lợi thế đa dạng cho các cửa hàng dịch vụ.",
   },
@@ -138,14 +139,14 @@ export const SHOP_TMDV_PROJECTS: ShopTmdvProject[] = [
       ownership: "Sở hữu 50 năm, làm ngay sổ hồng",
     },
     locationTabs: [
-      { label: "Vị trí BH9B", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-bh9b/vi-tri-shop-thuong-mai-dich-vu-bien-ho-9b-vinhomes-ocean-park.jpg" },
-      { label: "Vị trí BH9B (2)", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-bh9b/vi-tri-shop-thuong-mai-dich-vu-bien-ho-9b-vinhomes-ocean-park-1.jpg" },
+      { label: "Vị trí BH9B", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-bh9b/vi-tri-shop-thuong-mai-dich-vu-bien-ho-9b-vinhomes-ocean-park.jpg` },
+      { label: "Vị trí BH9B (2)", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-bh9b/vi-tri-shop-thuong-mai-dich-vu-bien-ho-9b-vinhomes-ocean-park-1.jpg` },
     ],
     exteriorTabs: [
-      { label: "Ảnh thực tế", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-bh9b/shop-thuong-mai-dich-vu-bien-ho-9b-vinhomes-ocean-park.jpg" },
+      { label: "Ảnh thực tế", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-bh9b/shop-thuong-mai-dich-vu-bien-ho-9b-vinhomes-ocean-park.jpg` },
     ],
     masterPlanTabs: [
-      { label: "Tổng mặt bằng BH9B", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-bh9b/mat-bang-shop-thuong-mai-dich-vu-bh9b-vinhomes-ocean-park-2048x1152.jpg" },
+      { label: "Tổng mặt bằng BH9B", src: `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-bh9b/mat-bang-shop-thuong-mai-dich-vu-bh9b-vinhomes-ocean-park-2048x1152.jpg` },
     ],
   },
 ];

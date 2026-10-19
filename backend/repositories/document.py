@@ -10,14 +10,13 @@ from backend.core.enums import (
     LegalStatus,
 )
 from backend.models.conflict_flag import ConflictFlag
-from backend.models.document import Document
+from backend.models.document import Document, document_categories
 from backend.models.document_relation import DocumentRelation
 from backend.schemas.document import (
     DocumentClassificationUpdate,
     DocumentCreate,
 )
-from backend.services.document_category_service import document_categories
-from backend.services.document_classification_service import (
+from backend.services.documents.document_classification_service import (
     DOCUMENT_CLASSIFICATION_VERSION,
     DocumentClassification,
 )

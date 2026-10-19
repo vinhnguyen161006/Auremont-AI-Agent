@@ -53,5 +53,7 @@ mypy>=1.13.0
 # is a large dependency that nothing under backend/ imports.
 
 # Handle docx and pdf
-PyMuPDF>=1.24
+# Capped below 2.0: PyMuPDF 2.0 changes table text extraction ("B6-CT02" becomes
+# "B6 -CT02"), which breaks identifier matching on ingested price tables.
+PyMuPDF>=1.24,<2
 python-docx>=1.1

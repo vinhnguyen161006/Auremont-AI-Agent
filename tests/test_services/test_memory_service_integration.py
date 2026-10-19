@@ -18,7 +18,7 @@ import redis
 
 from backend.core import redis_client as redis_module
 from backend.core.config import get_settings
-from backend.services import memory_service
+from backend.services.chat import memory_service
 
 
 def _redis_is_up() -> bool:

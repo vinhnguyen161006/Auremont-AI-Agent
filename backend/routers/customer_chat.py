@@ -47,6 +47,7 @@ from backend.repositories.message import (
     list_messages_for_session,
 )
 from backend.repositories.user import create_user, get_user_by_email
+from backend.schemas.chat import MessageResponse
 from backend.schemas.customer import (
     AnonymousSessionClaimRequest,
     AnonymousSessionResponse,
@@ -56,9 +57,9 @@ from backend.schemas.customer import (
     CustomerChatSessionResponse,
     CustomerRegisterRequest,
 )
-from backend.schemas.message import MessageResponse
 from backend.schemas.user import TokenResponse, UserResponse
-from backend.services import agent_pipeline, lead_service, memory_service, search_criteria
+from backend.services.chat import agent_pipeline, memory_service, search_criteria
+from backend.services.leads import lead_service
 from backend.utils.time import utcnow
 
 router = APIRouter(prefix="/customer", tags=["Customer Chat"])

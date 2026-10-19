@@ -1,14 +1,14 @@
-"""E2E: đi hết hành trình của Sale và Admin qua đúng các endpoint mà frontend gọi.
+"""E2E: walk the Sale and Admin journeys through the exact endpoints the frontend calls.
 
-Khác với test đơn vị (mock DB bằng SQLite), bộ này chạy ngược lại stack Docker
-đang sống — MySQL thật, JWT thật. Đó là nơi hai lỗi trước lọt lưới: FK của MySQL
-và `create_all` không ALTER bảng, cả hai đều vô hình trên SQLite.
+Unlike the unit tests (which mock the DB with SQLite), this suite runs against the live
+Docker stack — real MySQL, real JWTs. That is where two earlier bugs slipped through:
+MySQL foreign keys and `create_all` not ALTERing tables, both invisible on SQLite.
 
-Chạy:
+Run:
     docker compose up -d
     pytest tests/test_e2e -v
 
-Bỏ qua tự động nếu backend không chạy.
+Skipped automatically when the backend is not running.
 """
 
 import os
@@ -163,7 +163,7 @@ def test_admin_monitoring_tabs_respond(admin_headers):
 
 
 def test_roles_stay_separated(sale_headers, admin_headers):
-    """Sale không chạm được khu quản trị; cả hai đều chat được (phiên riêng)."""
+    """A Sale cannot reach the admin area; both roles can chat (in separate sessions)."""
     assert httpx.get(f"{API}/documents", headers=sale_headers, timeout=15).status_code == 403
     assert httpx.get(f"{API}/admin/conflicts", headers=sale_headers, timeout=15).status_code == 403
 

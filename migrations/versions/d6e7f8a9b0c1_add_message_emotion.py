@@ -1,9 +1,10 @@
 """add message emotion
 
-Cột mới cho phép avatar (AuremontAvatar.tsx) đổi biểu cảm/cử động theo đúng nội dung câu
-trả lời của AI — vui khi trả lời tốt, tiếc nuối khi không đủ thông tin/hết hàng, lịch sự
-khi cần chuyển giao Sale hoặc từ chối khéo. Tính toán từ tín hiệu pipeline/gate đã có sẵn,
-không gọi thêm LLM (xem backend/services/agent_pipeline.py, routers/customer_chat.py).
+The new column lets the avatar (AuremontAvatar.tsx) change its expression/motion to match
+the AI's answer — happy for a good answer, regretful when information is missing or a unit
+is sold out, polite when handing over to a Sale or declining gracefully. Computed from
+existing pipeline/gate signals, with no extra LLM call (see
+backend/services/chat/agent_pipeline.py, routers/customer_chat.py).
 
 Revision ID: d6e7f8a9b0c1
 Revises: c5d6e7f8a9b0

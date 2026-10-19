@@ -8,9 +8,9 @@ from backend.main import app
 from backend.models.chat_session import ChatSession
 from backend.models.user import User
 from backend.repositories.message import create_message, list_messages_for_session
-from backend.services import agent_pipeline, memory_service, search_criteria
-from backend.services.agent_pipeline import PipelineResult
-from backend.services.memory_service import UserProfile
+from backend.services.chat import agent_pipeline, memory_service, search_criteria
+from backend.services.chat.agent_pipeline import PipelineResult
+from backend.services.chat.memory_service import UserProfile
 
 
 @pytest.fixture

@@ -21,6 +21,7 @@ import {
   SearchIcon,
   SparkleIcon,
 } from "../../components/Icons";
+import { PROJECT_IMAGES_BASE_URL } from "../../config";
 
 // categorySlug in the URL is derived from the `category` field in pricing (via
 // backend slugify, e.g. "Shophouse" -> "shophouse") — it must match
@@ -38,28 +39,28 @@ const CHUNG_CU_BANNER_IMAGE = "/the-paris-background.jpg";
 // Auto-rotating background slides for the "Chung cư" page banner — 4 images per
 // spec, already available on MinIO from the-london/the-paris/the-zurich projects.
 const CHUNG_CU_BANNER_SLIDES = [
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-london/phong-dance-phan-khu-the-london-vinhomes-ocean-park.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-london/phong-giai-tri-phan-khu-the-london-vinhomes-ocean-park.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-paris/gym-ngoai-troi-phan-khu-paris-ocean-park.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-zurich/canh-quan-the-zurich.jpg",
+  `${PROJECT_IMAGES_BASE_URL}/the-london/phong-dance-phan-khu-the-london-vinhomes-ocean-park.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/the-london/phong-giai-tri-phan-khu-the-london-vinhomes-ocean-park.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/the-paris/gym-ngoai-troi-phan-khu-paris-ocean-park.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/the-zurich/canh-quan-the-zurich.jpg`,
 ];
 
 // Auto-rotating background slides for the "Biệt thự" (villa) page banner — 3
 // images per spec, already available on MinIO from the hai-au/ngoc-trai projects.
 const BIET_THU_BANNER_SLIDES = [
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/hai-au/lien-ke-vinhomes-ocean-park.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/vinhomes-ocean-park-shop-house.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/hai-au/song-lap-hai-au.jpg",
+  `${PROJECT_IMAGES_BASE_URL}/hai-au/lien-ke-vinhomes-ocean-park.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/vinhomes-ocean-park-shop-house.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/hai-au/song-lap-hai-au.jpg`,
 ];
 
 // Auto-rotating background slides for the "Shophouse" page banner — 1
 // representative exterior photo per shop row (SH09/SB11A/HA08/BH9B), already
 // available from the crawled data.
 const SHOPHOUSE_BANNER_SLIDES = [
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sh09/shop-tmdv-sh09.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-sb11a/shop-tmdv-sb11a-vinhomes-ocean-park.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-ha08/shop-thuong-mai-dich-vu-ha08-vinhomes-ocean-park.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/shop-thuong-mai-bh9b/shop-thuong-mai-dich-vu-bien-ho-9b-vinhomes-ocean-park.jpg",
+  `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sh09/shop-tmdv-sh09.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-sb11a/shop-tmdv-sb11a-vinhomes-ocean-park.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-ha08/shop-thuong-mai-dich-vu-ha08-vinhomes-ocean-park.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/shop-thuong-mai-bh9b/shop-thuong-mai-dich-vu-bien-ho-9b-vinhomes-ocean-park.jpg`,
 ];
 
 // 4 auto-rotating images for the "Chung cư" tab's intro section.
@@ -109,7 +110,7 @@ function VillaLocationMap() {
       <h3 className="villa-map-banner-title">Tổng mặt bằng các phân khu Biệt thự</h3>
       <div className="location-map-wrap">
         <img
-          src="https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/tong-the-vinhomes-ocean-park.jpg"
+          src={`${PROJECT_IMAGES_BASE_URL}/ngoc-trai/tong-the-vinhomes-ocean-park.jpg`}
           alt="Tổng mặt bằng các phân khu Biệt thự Vinhomes Ocean Park"
           className="location-map-img"
         />
@@ -128,10 +129,10 @@ function VillaLocationMap() {
 // gallery: the first image is the default large image; hovering/clicking one of
 // the 4 thumbnails swaps in the corresponding large image (see VillaOverviewIntro).
 const VILLA_OVERVIEW_PHOTOS = [
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/anh-biet-thu-1.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/anh-biet-thu-2.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/anh-biet-thu-3.jpg",
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/anh-biet-thu-4.jpg",
+  `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/anh-biet-thu-1.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/anh-biet-thu-2.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/anh-biet-thu-3.jpg`,
+  `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/anh-biet-thu-4.jpg`,
 ];
 
 // The text content here (scale/handover/legal figures) is NOT sourced from the
@@ -225,12 +226,12 @@ function VillaOverviewIntro() {
 // (the project with the most complete district-amenity photo set), reused for
 // every Chung cư zone.
 const DISTRICT_AMENITY_PHOTOS: ImageTab[] = [
-  { label: "Vincom Mega Mall", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-senique-hanoi/tttm-vincom-mega-mall-ocean-park.jpg" },
-  { label: "Phòng khám Vinmec", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-senique-hanoi/vinmec-ocean-park.jpg" },
-  { label: "Hồ Ngọc Trai", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-senique-hanoi/ho-ngoc-trai-vinhomes-ocean-park.jpg" },
-  { label: "Biển nhân tạo Crystal Lagoon", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-senique-hanoi/bien-crystal-largoon.jpg" },
-  { label: "Hệ thống giáo dục Vinschool", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-senique-hanoi/giao-duc-ocean-park.jpg" },
-  { label: "Đại học VinUni", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-senique-hanoi/dai-hoc-vinuni.jpg" },
+  { label: "Vincom Mega Mall", src: `${PROJECT_IMAGES_BASE_URL}/the-senique-hanoi/tttm-vincom-mega-mall-ocean-park.jpg` },
+  { label: "Phòng khám Vinmec", src: `${PROJECT_IMAGES_BASE_URL}/the-senique-hanoi/vinmec-ocean-park.jpg` },
+  { label: "Hồ Ngọc Trai", src: `${PROJECT_IMAGES_BASE_URL}/the-senique-hanoi/ho-ngoc-trai-vinhomes-ocean-park.jpg` },
+  { label: "Biển nhân tạo Crystal Lagoon", src: `${PROJECT_IMAGES_BASE_URL}/the-senique-hanoi/bien-crystal-largoon.jpg` },
+  { label: "Hệ thống giáo dục Vinschool", src: `${PROJECT_IMAGES_BASE_URL}/the-senique-hanoi/giao-duc-ocean-park.jpg` },
+  { label: "Đại học VinUni", src: `${PROJECT_IMAGES_BASE_URL}/the-senique-hanoi/dai-hoc-vinuni.jpg` },
 ];
 
 // Representative in-tower amenities for apartment buildings (gym/yoga/pool/
@@ -238,24 +239,24 @@ const DISTRICT_AMENITY_PHOTOS: ImageTab[] = [
 // London, used generically for the Chung cư tab (not tied to one specific
 // project since this section sits at the category level).
 const TOWER_AMENITY_PHOTOS: ImageTab[] = [
-  { label: "Phòng gym", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-zurich/phong-gym-the-zurich.jpg" },
-  { label: "Phòng yoga", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-zurich/phong-yoga-the-zurich.jpg" },
-  { label: "Bể bơi khoáng nóng", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-zurich/be-boi-thermal-bath-the-zurich.jpg" },
-  { label: "Khu vui chơi trẻ em trong nhà", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-zurich/khu-vui-choi-trong-nha-tre-e-the-zurich.jpg" },
-  { label: "Phòng sinh hoạt cộng đồng", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-zurich/phong-sinh-hoat-cong-dong-the-zurich.jpg" },
-  { label: "Phòng dance / aerobic", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-london/phong-dance-phan-khu-the-london-vinhomes-ocean-park.jpg" },
+  { label: "Phòng gym", src: `${PROJECT_IMAGES_BASE_URL}/the-zurich/phong-gym-the-zurich.jpg` },
+  { label: "Phòng yoga", src: `${PROJECT_IMAGES_BASE_URL}/the-zurich/phong-yoga-the-zurich.jpg` },
+  { label: "Bể bơi khoáng nóng", src: `${PROJECT_IMAGES_BASE_URL}/the-zurich/be-boi-thermal-bath-the-zurich.jpg` },
+  { label: "Khu vui chơi trẻ em trong nhà", src: `${PROJECT_IMAGES_BASE_URL}/the-zurich/khu-vui-choi-trong-nha-tre-e-the-zurich.jpg` },
+  { label: "Phòng sinh hoạt cộng đồng", src: `${PROJECT_IMAGES_BASE_URL}/the-zurich/phong-sinh-hoat-cong-dong-the-zurich.jpg` },
+  { label: "Phòng dance / aerobic", src: `${PROJECT_IMAGES_BASE_URL}/the-london/phong-dance-phan-khu-the-london-vinhomes-ocean-park.jpg` },
 ];
 
 // Amenities & services specific to the Villa tab — uses photos from the Ngọc
 // Trai sub-zone's crawled image set (these fit better as district-wide amenity
 // photos, and don't overlap with the ones used for Chung cư).
 const BIET_THU_AMENITY_PHOTOS: ImageTab[] = [
-  { label: "Vincom Mega Mall", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/vincom-mega-mall-768x768.jpg" },
-  { label: "Đại học VinUni", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/vinuni-768x768-1.jpg" },
-  { label: "Hệ thống giáo dục Vinschool", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/vinschool-1-705x705.jpg" },
-  { label: "Bệnh viện Vinmec", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/vinmec-768x768-1.jpg" },
-  { label: "Vườn nướng BBQ", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/vuong-nuong-bbq-705x705.jpg" },
-  { label: "Công viên & khu gym ngoài trời", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/ngoc-trai/cong-vien-gym-768x768-2-705x705.jpg" },
+  { label: "Vincom Mega Mall", src: `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/vincom-mega-mall-768x768.jpg` },
+  { label: "Đại học VinUni", src: `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/vinuni-768x768-1.jpg` },
+  { label: "Hệ thống giáo dục Vinschool", src: `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/vinschool-1-705x705.jpg` },
+  { label: "Bệnh viện Vinmec", src: `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/vinmec-768x768-1.jpg` },
+  { label: "Vườn nướng BBQ", src: `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/vuong-nuong-bbq-705x705.jpg` },
+  { label: "Công viên & khu gym ngoài trời", src: `${PROJECT_IMAGES_BASE_URL}/ngoc-trai/cong-vien-gym-768x768-2-705x705.jpg` },
 ];
 
 function CategoryBanner({ category }: { category: CategoryDetail }) {

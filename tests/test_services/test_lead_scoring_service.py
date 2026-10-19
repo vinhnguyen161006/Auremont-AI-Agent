@@ -7,8 +7,8 @@ covered in tests/test_api/test_lead_scoring_wiring.py.
 import pytest
 
 from backend.core.enums import LeadPurpose, LeadTier, LeadUrgency
-from backend.services import lead_scoring_service as scoring
-from backend.services import search_criteria
+from backend.services.chat import search_criteria
+from backend.services.leads import lead_scoring_service as scoring
 
 HOT, WARM = 65, 35
 

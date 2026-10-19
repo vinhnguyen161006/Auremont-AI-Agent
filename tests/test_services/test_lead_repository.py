@@ -3,7 +3,7 @@
 from backend.core.enums import LeadTier
 from backend.models.lead import Lead
 from backend.repositories.lead import update_lead_score
-from backend.services.lead_scoring_service import LeadVerdict
+from backend.services.leads.lead_scoring_service import LeadVerdict
 
 
 def _verdict(*, signals: dict) -> LeadVerdict:

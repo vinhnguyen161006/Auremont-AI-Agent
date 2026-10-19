@@ -1,6 +1,6 @@
-﻿# Khởi động toàn bộ môi trường dev: Docker (MySQL/Qdrant/MinIO) + Backend + Frontend.
-# Chạy bằng cách bấm đúp start-dev.bat (file này không nên chạy trực tiếp bằng double-click
-# vì Windows sẽ chặn theo Execution Policy mặc định).
+﻿# Start the whole dev environment: Docker (MySQL/Qdrant/MinIO) + backend + frontend.
+# Run it by double-clicking start-dev.bat (do not double-click this file directly:
+# Windows blocks it under the default Execution Policy).
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot

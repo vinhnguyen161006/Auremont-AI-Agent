@@ -1,6 +1,6 @@
 import re
 
-from backend.services import answer_images_service
+from backend.services.chat import answer_images_service
 from backend.utils.text import strip_diacritics
 
 

@@ -28,14 +28,14 @@ def test_removes_every_markdown_marker():
 
 
 def test_keeps_plain_prose_untouched():
-    """Câu trả lời văn xuôi sạch không được bị hàm này can thiệp."""
+    """Clean prose answers must be left untouched by this function."""
     raw = "Căn 2PN tại The Zenpark có diện tích 64-70m², giá từ 3 tỷ đến 3,5 tỷ đồng."
 
     assert strip_markdown(raw) == raw
 
 
 def test_preserves_multiplication_and_standalone_symbols():
-    """Dấu sao không bao quanh nội dung (ví dụ ghi chú) không phải cú pháp nhấn mạnh."""
+    """An asterisk that does not wrap content (a footnote, say) is not emphasis syntax."""
     raw = "Diện tích 8 * 12 mét."
 
     assert strip_markdown(raw) == raw

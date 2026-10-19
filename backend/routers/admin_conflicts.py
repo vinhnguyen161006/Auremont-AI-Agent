@@ -14,16 +14,16 @@ from backend.models.project import Project
 from backend.models.user import User
 from backend.repositories.conflict_flag import dismiss_conflict, list_open_conflicts, resolve_conflict
 from backend.repositories.document import get_document
-from backend.schemas.conflict_flag import (
+from backend.schemas.document import (
     ConflictDetailResponse,
     ConflictDetectionMethod,
     ConflictDocumentSummary,
     ConflictFlagResponse,
     ConflictResolveRequest,
 )
-from backend.services.cache_service import clear_cache
-from backend.services.conflict_severity_service import ConflictSeverity, classify_conflict_severity
-from backend.services.vector_store_service import (
+from backend.services.chat.cache_service import clear_cache
+from backend.services.documents.document_conflict_service import ConflictSeverity, classify_conflict_severity
+from backend.services.documents.vector_store_service import (
     VectorStoreError,
     document_vector_metadata_snapshot,
     log_and_swallow_restore_failure,

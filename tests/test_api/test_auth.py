@@ -56,7 +56,7 @@ def test_refresh_issues_a_working_access_token(client, users):
 
 
 def test_access_token_cannot_be_used_to_refresh(client, users):
-    """Nếu không chặn, một access token bị lộ có thể tự gia hạn vô hạn."""
+    """Without this guard, a leaked access token could renew itself forever."""
     access_token = _login(client, "sale1")["access_token"]
 
     response = client.post("/api/v1/auth/refresh", json={"refresh_token": access_token})
@@ -83,3 +83,22 @@ def test_admin_only_routes_reject_sale(client, users):
 
     assert client.get("/api/v1/documents", headers={"Authorization": f"Bearer {sale_token}"}).status_code == 403
     assert client.get("/api/v1/documents", headers={"Authorization": f"Bearer {admin_token}"}).status_code == 200
+
+
+def test_login_is_throttled_after_repeated_failures(client, users):
+    from backend.core.rate_limit import LOGIN_ATTEMPTS_PER_WINDOW
+
+    for _ in range(LOGIN_ATTEMPTS_PER_WINDOW):
+        response = client.post("/api/v1/auth/login", data={"username": "adm1", "password": "wrong-password"})
+        assert response.status_code == 401
+
+    blocked = client.post("/api/v1/auth/login", data={"username": "adm1", "password": PASSWORD})
+    assert blocked.status_code == 429
+
+
+def test_login_throttle_does_not_consume_the_anonymous_chat_budget(client, users):
+    from backend.core import rate_limit
+
+    _login(client, "adm1")
+
+    assert all(not key.startswith("anonymous:") for key in rate_limit._hits)

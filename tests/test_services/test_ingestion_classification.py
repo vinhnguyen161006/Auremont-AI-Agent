@@ -12,12 +12,11 @@ from backend.core.enums import (
     LegalStatus,
 )
 from backend.models.conflict_flag import ConflictFlag
-from backend.models.document import Document
+from backend.models.document import Document, document_categories
 from backend.models.project import Project
-from backend.services import ingestion_service, vector_store_service
-from backend.services.document_category_service import document_categories
-from backend.services.document_classification_service import ConflictFact, DocumentClassification
-from backend.services.parser_service import ParsedSection
+from backend.services.documents import ingestion_service, vector_store_service
+from backend.services.documents.document_classification_service import ConflictFact, DocumentClassification
+from backend.services.documents.parser_service import ParsedSection
 
 
 def _document(db_session, title: str) -> Document:
@@ -1295,7 +1294,7 @@ def test_short_building_codes_are_price_keys_without_matching_unit_types_or_year
 
 
 def _completed(db_session, title: str, **fields) -> Document:
-    """Tài liệu đã ingest xong, không gắn dự án trừ khi truyền project_id."""
+    """A fully ingested document, not attached to a project unless project_id is given."""
     document = Document(title=title, status=DocumentStatus.COMPLETED, **fields)
     db_session.add(document)
     db_session.commit()
@@ -1307,10 +1306,10 @@ def test_price_lists_without_a_project_still_conflict_when_scope_overlaps(
     db_session,
     monkeypatch,
 ):
-    """Form upload cho phép bỏ trống dự án, nên không được im lặng bỏ qua quét.
+    """The upload form allows leaving the project empty, so the scan must not be skipped silently.
 
-    Trước đây `list_completed_siblings` trả [] ngay khi project_id rỗng, khiến mọi
-    tài liệu upload không gắn dự án rơi khỏi toàn bộ cơ chế phát hiện mâu thuẫn.
+    `list_completed_siblings` used to return [] as soon as project_id was empty, so every
+    document uploaded without a project fell out of conflict detection entirely.
     """
     old = _completed(
         db_session,
@@ -1339,10 +1338,10 @@ def test_unrelated_documents_without_a_project_do_not_conflict(
     db_session,
     monkeypatch,
 ):
-    """Không có dự án làm mốc thì phải có bằng chứng dương về cùng phạm vi.
+    """With no project as an anchor, there must be positive evidence of the same scope.
 
-    Nếu không, hai bảng giá của hai dự án khác nhau mà cùng bỏ trống dự án sẽ
-    flag lẫn nhau và làm Admin ngập trong cảnh báo giả.
+    Otherwise two price lists from two different projects, both uploaded without a
+    project, would flag each other and flood the Admin with false alerts.
     """
     old = _completed(
         db_session,
@@ -1450,7 +1449,7 @@ def test_vietnamese_thousands_in_million_unit_and_compound_prices_are_normalised
 
 
 def test_identical_titles_with_changed_content_still_conflict(db_session, monkeypatch):
-    """Trùng tên và thay đổi nội dung vẫn là một cảnh báo hợp lệ."""
+    """A matching title with changed content is still a valid alert."""
     old = _completed(
         db_session,
         "Chinh sach ban hang The Zurich.pdf",

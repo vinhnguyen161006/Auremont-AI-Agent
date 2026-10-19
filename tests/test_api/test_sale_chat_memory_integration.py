@@ -18,8 +18,8 @@ from backend.core.enums import UserRole
 from backend.core.mysql_client import get_db
 from backend.main import app
 from backend.models.user import User
-from backend.services import agent_pipeline, verifier_service
-from backend.services.verifier_service import VerifierResult
+from backend.services.chat import agent_pipeline, verifier_service
+from backend.services.chat.verifier_service import VerifierResult
 
 
 @pytest.fixture
@@ -46,14 +46,14 @@ def wired_pipeline(monkeypatch):
     retrieve: stands in for Qdrant — always returns one grounding chunk so `_generate`
     and `_verify` have context to work with.
     generate_json: stands in for the Gemini call. Records the exact prompt it was given
-    and returns a canned answer that never trips risk_service (no price/commitment
+    and returns a canned answer that never trips the risk check (no price/commitment
     wording) and never asks for images, so the graph takes the plain verify -> risk_check
     -> END path every time.
     verifier_service.score_answer: stands in for the Gemini judge call, always passes,
     so every turn reaches risk_check/END rather than the low-confidence branch.
 
     Everything else — cache_check, the LangGraph wiring itself, prompts.build_prompt,
-    prompts._format_history, risk_service.detect_commitment_risk — runs for real.
+    prompts._format_history, guardrails.detect_commitment_risk — runs for real.
     """
     prompts_seen: list[str] = []
 

@@ -8,8 +8,8 @@ the text. Capped, and NO fallback — an unasked-for photo of the wrong thing is
 no photo at all.
 """
 
-from backend.services import answer_images_service
-from backend.services.answer_images_service import _AUTO_ATTACH_MAX_IMAGES
+from backend.services.chat import answer_images_service
+from backend.services.chat.answer_images_service import _AUTO_ATTACH_MAX_IMAGES
 
 GALLERY = [
     "https://cdn/p/the-palma/tien-ich-be-boi.jpg",

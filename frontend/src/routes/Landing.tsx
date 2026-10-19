@@ -10,7 +10,7 @@ import { Home } from "./Home";
  * Sale/Customer sees at `/home`: a visitor browses identically to Sale. Data stays split
  * at the API layer, not the page layer — the catalogue/project pages this links to are
  * already public-safe, and chat answers are capped at PUBLIC clearance server-side (see
- * backend/services/agent_pipeline.py). */
+ * backend/services/chat/agent_pipeline.py). */
 export function Landing() {
   const { isAuthenticated } = useAuth();
   if (isAuthenticated) return <Navigate to="/home" replace />;

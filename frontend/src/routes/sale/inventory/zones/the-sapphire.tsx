@@ -1,8 +1,9 @@
 // Zone page for "The Sapphire" (apartment zone), extracted from the old
 // single-scroll CategoryDetailPage.
 import { AmenityPhotoBanner, FloorPlanTabs, PriceTable, type ImageTab } from "../shared";
+import { PROJECT_IMAGES_BASE_URL } from "../../../../config";
 
-const IMG = "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/the-sapphire";
+const IMG = `${PROJECT_IMAGES_BASE_URL}/the-sapphire`;
 
 // "The Sapphire" copy follows the mockup provided by the user (longer than the
 // short "description" in the_sapphire.json) — Sapphire is a top-level zone (not

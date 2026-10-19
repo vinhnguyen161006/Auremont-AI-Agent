@@ -6,7 +6,7 @@ correct the answer is, and the pipeline replaces it with "Không đủ thông ti
 Admin." These tests pin the routing that avoids that.
 """
 
-from backend.services import agent_pipeline
+from backend.services.chat import agent_pipeline
 
 
 def _doc_hit() -> dict:

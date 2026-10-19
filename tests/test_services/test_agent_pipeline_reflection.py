@@ -10,8 +10,8 @@ import pytest
 
 from backend.ai import prompts
 from backend.core.config import settings
-from backend.services import agent_pipeline, reflection_memory
-from backend.services.verifier_service import FailureMode, NextAction, VerifierResult
+from backend.services.chat import agent_pipeline, reflection_memory
+from backend.services.chat.verifier_service import FailureMode, NextAction, VerifierResult
 
 DOCS = [{"document_id": 1, "title": "csbh.pdf", "page": 2, "content": "Chinh sach thanh toan 5 dot.", "score": 0.8}]
 COMPLAINT = "Chua neu dieu kien ap dung kem con so."
@@ -67,7 +67,7 @@ def _run(
     monkeypatch.setattr(agent_pipeline, "_store_cache", lambda *a, **k: None)
     monkeypatch.setattr(agent_pipeline, "query_needs_documents", lambda query: True)
     monkeypatch.setattr(agent_pipeline, "query_needs_inventory", lambda query: False)
-    monkeypatch.setattr(agent_pipeline.risk_service, "detect_commitment_risk", lambda answer: False)
+    monkeypatch.setattr(agent_pipeline.guardrails, "detect_commitment_risk", lambda answer: False)
 
     def _generate_json(prompt, schema, system_instruction=None, **_kwargs):
         seen.append(prompt)
@@ -85,7 +85,7 @@ def _run(
 
 
 def test_a_lesson_from_one_question_reaches_the_next(reflection_redis, monkeypatch):
-    """Diem cot loi: cau hoi sau duoc nhac ve loi cua cau hoi truoc, TRUOC khi sinh."""
+    """The core point: the next question is reminded of the previous question's mistake BEFORE generation."""
     _run(monkeypatch, "Chinh sach thanh toan the nao?", verdicts=[_verdict(0.3), _verdict(0.9)])
 
     later = _run(monkeypatch, "Chinh sach thanh toan ra sao?", verdicts=[_verdict(0.9)])
@@ -100,7 +100,7 @@ def test_the_first_question_ever_asked_carries_no_lessons(reflection_redis, monk
 
 
 def test_an_unrelated_later_question_carries_no_lessons(reflection_redis, monkeypatch):
-    """Bai hoc khong lien quan van ton token tren moi cau hoi."""
+    """An unrelated lesson still costs tokens on every question."""
     _run(monkeypatch, "Chinh sach thanh toan the nao?", verdicts=[_verdict(0.3), _verdict(0.9)])
 
     later = _run(monkeypatch, "Tien ich noi khu gom nhung gi?", verdicts=[_verdict(0.9)])
@@ -159,7 +159,7 @@ def test_disabled_flag_neither_reads_nor_writes(reflection_redis, monkeypatch):
 
 
 def test_redis_outage_still_answers(monkeypatch):
-    """Mat bai hoc thi chap nhan duoc; mat cau tra loi thi khong."""
+    """Losing the lessons is acceptable; losing the answer is not."""
     monkeypatch.setattr(settings, "reflection_memory_enabled", True)
     monkeypatch.setattr(reflection_memory, "get_redis_client", lambda: None)
 
@@ -169,7 +169,7 @@ def test_redis_outage_still_answers(monkeypatch):
 
 
 def test_correction_is_read_after_the_lessons():
-    """Bai hoc la chi thi chung; correction noi ve ban nhap vua bi tu choi nen phai doc sau."""
+    """Lessons are general rules; the correction concerns the draft just rejected, so it comes after them."""
     prompt = prompts.build_prompt(
         "Chinh sach thanh toan the nao?",
         DOCS,
@@ -184,7 +184,7 @@ def test_correction_is_read_after_the_lessons():
 
 
 def test_lessons_are_marked_as_not_being_project_data():
-    """Bai hoc khong phai grounding — model khong duoc lay so lieu tu do."""
+    """Lessons are not grounding — the model must not take figures from them."""
     prompt = prompts.build_prompt(
         "Chinh sach thanh toan the nao?",
         DOCS,

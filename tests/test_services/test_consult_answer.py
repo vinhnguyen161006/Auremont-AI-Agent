@@ -8,7 +8,7 @@ prompts.ConsultAnswer/SaleAnswer.
 
 from backend.ai.prompts import ConsultAnswer, PropertyListing, SaleAnswer
 from backend.core.enums import DocumentVisibility
-from backend.services import agent_pipeline
+from backend.services.chat import agent_pipeline
 
 
 def test_public_clearance_uses_structured_output_and_keeps_quick_replies(monkeypatch):

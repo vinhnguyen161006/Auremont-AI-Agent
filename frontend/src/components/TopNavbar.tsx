@@ -84,7 +84,7 @@ export function TopNavbar() {
 
   // Everyone except Admin gets the catalogue dropdown + Chat link: Sale, a logged-in
   // Customer, and an anonymous visitor all browse the same public catalogue — only the
-  // chat *answers* are restricted server-side (see backend/services/agent_pipeline.py).
+  // chat *answers* are restricted server-side (see backend/services/chat/agent_pipeline.py).
   const showCatalogNav = role !== "admin";
   const homeHref = isAuthenticated ? "/home" : "/";
 

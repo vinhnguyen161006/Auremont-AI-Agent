@@ -1,6 +1,6 @@
 from backend.core.config import settings
-from backend.services.document_security_service import scan_document_sections
-from backend.services.parser_service import ParsedSection
+from backend.services.documents.document_security_service import scan_document_sections
+from backend.services.documents.parser_service import ParsedSection
 
 
 def _scan(text: str, page: int | None = 1):

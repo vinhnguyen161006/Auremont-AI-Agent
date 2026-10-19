@@ -4,7 +4,7 @@ paged cards instead of bullet lines — see prompts.PropertyListing and
 CustomerChatPage.tsx's PropertyListingCarousel.
 
 The regression this file guards against: `_risk_check` decides `requires_hitl` by
-regex-scanning `draft_answer` (risk_service.detect_commitment_risk). Moving price/area out
+regex-scanning `draft_answer` (guardrails.detect_commitment_risk). Moving price/area out
 of that text and into `listings` would make a price-bearing recommendation invisible to
 that scan unless `_risk_check` is taught to look at `listings` too — exactly the class of
 answer RiskCheck exists to catch, so a miss here is the worst possible one.
@@ -12,7 +12,7 @@ answer RiskCheck exists to catch, so a miss here is the worst possible one.
 
 from backend.ai.prompts import PropertyListing
 from backend.models.project import Project
-from backend.services import agent_pipeline
+from backend.services.chat import agent_pipeline
 
 
 class _FakeDb:

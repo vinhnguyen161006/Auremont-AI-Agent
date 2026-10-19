@@ -21,16 +21,16 @@ from backend.schemas.document_reclassification import (
     ReclassificationApplyItem,
     ReclassificationApplyRequest,
 )
-from backend.services.document_classification_service import DocumentClassification
-from backend.services.ingestion_service import AI_SERVICE_QUOTA_PUBLIC_MESSAGE, ConflictScanOutcome
-from backend.services.legacy_reclassification_service import (
+from backend.services.documents.document_classification_service import DocumentClassification
+from backend.services.documents.ingestion_service import AI_SERVICE_QUOTA_PUBLIC_MESSAGE, ConflictScanOutcome
+from backend.services.documents.legacy_reclassification_service import (
     InvalidConfirmationTokenError,
     LegacyReclassificationError,
     apply_document_reclassification,
     list_reclassification_candidates,
     preview_document_reclassification,
 )
-from backend.services.parser_service import ParsedSection
+from backend.services.documents.parser_service import ParsedSection
 
 
 @pytest.fixture
@@ -152,7 +152,7 @@ def test_pending_candidate_selector_only_returns_completed_unreviewed_documents(
 
 
 def test_preview_is_read_only_and_recommends_exact_subdivision_project(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     project = Project(id="the-beverly", name="The Beverly - Vinhomes Ocean Park")
     sibling = Project(
@@ -186,7 +186,7 @@ def test_preview_is_read_only_and_recommends_exact_subdivision_project(db_sessio
 
 
 def test_preview_reports_quota_without_leaking_provider_details(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     document = _document(db_session, admin)
     _mock_source(monkeypatch, service)
@@ -223,7 +223,7 @@ def test_tampered_confirmation_token_is_rejected(db_session, admin):
 
 
 def test_apply_rejects_preview_after_metadata_changed(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     document = _document(db_session, admin)
     _mock_source(monkeypatch, service)
@@ -240,7 +240,7 @@ def test_apply_rejects_preview_after_metadata_changed(db_session, admin, monkeyp
 
 
 def test_apply_updates_metadata_and_preserves_active_state(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     document = _document(db_session, admin, classification_version=None)
     classification = _classifier_result(building_codes=["be1"], requires_admin_review=True)
@@ -277,7 +277,7 @@ def test_apply_updates_metadata_and_preserves_active_state(db_session, admin, mo
 
 
 def test_admin_apply_activates_document_that_only_awaited_review(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     document = _document(
         db_session,
@@ -320,7 +320,7 @@ def test_admin_apply_activates_document_that_only_awaited_review(db_session, adm
 
 
 def test_retry_activates_approved_document_left_quarantined_by_partial_apply(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     document = _document(
         db_session,
@@ -351,7 +351,7 @@ def test_retry_activates_approved_document_left_quarantined_by_partial_apply(db_
 
 
 def test_blocked_document_never_becomes_current(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     document = _document(
         db_session,
@@ -406,7 +406,7 @@ def test_apply_endpoint_clears_cache_before_attempt_and_after_failure(db_session
 
 
 def test_reindex_failure_keeps_legacy_version_and_quarantine(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     document = _document(
         db_session,
@@ -435,7 +435,7 @@ def test_reindex_failure_keeps_legacy_version_and_quarantine(db_session, admin, 
 
 
 def test_concurrent_metadata_change_after_quarantine_is_not_overwritten(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     document = _document(db_session, admin, classification_version=None)
     _mock_source(monkeypatch, service)
@@ -476,7 +476,7 @@ def test_concurrent_metadata_change_after_quarantine_is_not_overwritten(db_sessi
 
 
 def test_final_publish_never_overwrites_a_later_quarantine(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     document = _document(db_session, admin, classification_version=None)
     _mock_source(monkeypatch, service)
@@ -518,7 +518,7 @@ def test_final_publish_never_overwrites_a_later_quarantine(db_session, admin, mo
 
 
 def test_final_vector_failure_does_not_mark_backfill_complete(db_session, admin, monkeypatch):
-    from backend.services import legacy_reclassification_service as service
+    from backend.services.documents import legacy_reclassification_service as service
 
     document = _document(db_session, admin, classification_version=None)
     _mock_source(monkeypatch, service)

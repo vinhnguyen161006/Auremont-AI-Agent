@@ -1,8 +1,8 @@
-"""Migration phải luôn khớp với model.
+"""Migrations must always match the models.
 
-Nếu ai đó sửa model mà quên tạo revision, `alembic upgrade head` trên môi trường
-mới sẽ dựng ra schema thiếu cột — và lỗi chỉ nổ lúc chạy thật. Test này bắt
-tình huống đó ngay từ CI.
+If someone changes a model and forgets to create a revision, `alembic upgrade head` on a
+fresh environment builds a schema with missing columns — and the error only surfaces at
+runtime. This test catches that in CI.
 """
 
 from pathlib import Path
@@ -78,7 +78,7 @@ def test_migration_creates_every_business_table(migrated_db):
 
 
 def test_hitl_audit_trail_keeps_who_what_when(migrated_db):
-    """HITL log là bằng chứng Sale đã đọc & xác nhận trước khi gửi khách."""
+    """The HITL log is the proof that a Sale read and confirmed an answer before sending it to a customer."""
     columns = {c["name"] for c in inspect(migrated_db).get_columns("hitl_logs")}
     for column in ("message_id", "sale_id", "status", "confirmed_content", "confirmed_at", "created_at"):
         assert column in columns, f"hitl_logs thiếu cột audit: {column}"
@@ -100,7 +100,7 @@ def test_conflict_analysis_metadata_is_persisted(migrated_db):
 
 
 def test_schema_matches_models(migrated_db):
-    """Không được có drift giữa migration và model."""
+    """There must be no drift between the migrations and the models."""
     with migrated_db.connect() as connection:
         context = MigrationContext.configure(connection, opts={"compare_type": True})
         diff = compare_metadata(context, Base.metadata)

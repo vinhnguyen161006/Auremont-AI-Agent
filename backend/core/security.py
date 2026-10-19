@@ -40,7 +40,7 @@ def decode_token(token: str) -> dict | None:
         return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
     except JWTError as exc:
         logger.warning(
-            "Token bi tu choi.",
+            "Token rejected.",
             extra={"event": "auth.token.rejected", "reason": type(exc).__name__},
         )
         return None

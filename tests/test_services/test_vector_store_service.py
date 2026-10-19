@@ -4,8 +4,8 @@ import pytest
 from qdrant_client import models
 
 from backend.core.config import settings
-from backend.services import vector_store_service
-from backend.services.chunking_service import DocumentChunk
+from backend.services.documents import vector_store_service
+from backend.services.documents.chunking_service import DocumentChunk
 
 
 def _sparse(indices=(1, 2), values=(0.5, 0.5)) -> models.SparseVector:

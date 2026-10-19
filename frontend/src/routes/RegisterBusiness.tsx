@@ -3,9 +3,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { billingApi, formatVnd, type Plan, type PlanId, type Quote } from "../api/billing";
 import { AuremontLogoIcon, CheckCircleIcon, LoaderIcon } from "../components/Icons";
 import { PHONE_ERROR, isValidPhone, normalisePhone } from "../utils/phone";
+import { PROJECT_IMAGES_BASE_URL } from "../config";
 
 const HERO_IMAGE_URL =
-  "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/vinhomes-ocean-park/masteri-grand-coast-bg-homepage.jpg";
+  `${PROJECT_IMAGES_BASE_URL}/vinhomes-ocean-park/masteri-grand-coast-bg-homepage.jpg`;
 
 // Business sign-up, deliberately separate from /register.
 //

@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ComponentType } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { TopNavbar } from "./components/TopNavbar";
 import { ChatWidget } from "./components/ChatWidget";
@@ -16,21 +17,34 @@ import { CategoryDetailPage } from "./routes/sale/CategoryDetailPage";
 import { ZoneDetailPage } from "./routes/sale/ZoneDetailPage";
 import { CatalogGroupPage } from "./routes/sale/CatalogGroupPage";
 import { ProjectOverviewPage } from "./routes/sale/ProjectOverviewPage";
-import { LiveInboxPage } from "./routes/sale/LiveInboxPage";
-import { LiveChatPage } from "./routes/sale/LiveChatPage";
-import { AdminHome } from "./routes/admin/AdminHome";
-import { DocumentsTab } from "./routes/admin/DocumentsTab";
-import { DocumentReviewTab } from "./routes/admin/DocumentReviewTab";
-import { DocumentRelationsTab } from "./routes/admin/DocumentRelationsTab";
-import { EvalTab } from "./routes/admin/EvalTab";
-import { ConflictsTab } from "./routes/admin/ConflictsTab";
-import { BillingRequestsTab } from "./routes/admin/BillingRequestsTab";
-import { SalesManagementPage } from "./routes/admin/SalesManagementPage";
-import { ObservabilityPage } from "./routes/admin/ObservabilityPage";
 import { NotFound } from "./routes/NotFound";
 import { NewsPage } from "./routes/NewsPage";
 import { NewsDetailPage } from "./routes/NewsDetailPage";
-import { NewsWorkspacePage } from "./routes/NewsWorkspacePage";
+
+// Staff-only screens are split into their own chunks: an anonymous visitor or customer never
+// downloads the admin console, the live inbox or the news workspace.
+function lazyPage<Name extends string>(load: () => Promise<Record<Name, ComponentType>>, name: Name) {
+  return lazy(() => load().then((module) => ({ default: module[name] })));
+}
+
+const LiveInboxPage = lazyPage(() => import("./routes/sale/LiveInboxPage"), "LiveInboxPage");
+const LiveChatPage = lazyPage(() => import("./routes/sale/LiveChatPage"), "LiveChatPage");
+const AdminHome = lazyPage(() => import("./routes/admin/AdminHome"), "AdminHome");
+const DocumentsTab = lazyPage(() => import("./routes/admin/DocumentsTab"), "DocumentsTab");
+const DocumentReviewTab = lazyPage(() => import("./routes/admin/DocumentReviewTab"), "DocumentReviewTab");
+const DocumentRelationsTab = lazyPage(() => import("./routes/admin/DocumentRelationsTab"), "DocumentRelationsTab");
+const EvalTab = lazyPage(() => import("./routes/admin/EvalTab"), "EvalTab");
+const ConflictsTab = lazyPage(() => import("./routes/admin/ConflictsTab"), "ConflictsTab");
+const BillingRequestsTab = lazyPage(() => import("./routes/admin/BillingRequestsTab"), "BillingRequestsTab");
+const SalesManagementPage = lazyPage(() => import("./routes/admin/SalesManagementPage"), "SalesManagementPage");
+const ObservabilityPage = lazyPage(() => import("./routes/admin/ObservabilityPage"), "ObservabilityPage");
+const NewsWorkspacePage = lazyPage(() => import("./routes/NewsWorkspacePage"), "NewsWorkspacePage");
+
+const pageFallback = (
+  <p className="empty-state" role="status">
+    Đang tải…
+  </p>
+);
 
 /** Admin gets its own dashboard; Sale and Customer see the chat-oriented home page. */
 function HomeRoute() {
@@ -84,7 +98,8 @@ function AppShell() {
     <div className="app-shell">
       <TopNavbar />
       <div className="app-content">
-        <Routes>
+        <Suspense fallback={pageFallback}>
+          <Routes>
           <Route
             path="/home"
             element={
@@ -204,7 +219,8 @@ function AppShell() {
           />
 
           <Route path="*" element={<NotFound />} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </div>
 
       {/* The marketing footer (contact, resources) means nothing inside the admin console. */}

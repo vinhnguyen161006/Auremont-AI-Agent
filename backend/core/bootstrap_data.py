@@ -1,28 +1,29 @@
-"""Nap du lieu demo (anh -> MinIO, catalogue -> MySQL) ngay khi backend khoi dong.
+"""Load demo data (images -> MinIO, catalogue -> MySQL) as soon as the backend starts.
 
-Truoc day phai chay tay 3 script sau khi `docker compose up`; ai bo qua buoc do se
-thay trang Tra cuu trong tron va toan bo anh vo — khong co tin hieu nao chi ra
-nguyen nhan. Muc tieu cua module nay: clone repo, `docker compose up`, xong.
+Three scripts used to have to be run by hand after `docker compose up`; anyone who
+skipped that step got an empty catalogue page and every image broken, with nothing
+pointing at the cause. The goal of this module: clone the repo, `docker compose up`, done.
 
-Anh du an KHONG nam trong git (~58 MB). Chung song tren S3/R2 va duoc tai
-ve MinIO o day, theo danh sach trong seed-data/project_images_manifest.json.
+Project images are NOT in git (~58 MB). They live on S3/R2 and are downloaded into
+MinIO here, following the list in seed-data/project_images_manifest.json.
 
-Co hai nguon:
+There are two sources:
 
-* `PROJECT_IMAGES_BASE_URL` — thu muc cong khai (R2 public URL, S3 public, CDN),
-  ghep base + duong dan trong manifest. Doc an danh: khong can credentials, nen
-  khong phai phat tan API key cho ca team chi de xem anh.
-* `PROJECT_IMAGES_ARCHIVE_URL` — mot file .tar.gz duy nhat; mot request thay vi ~180.
+* `PROJECT_IMAGES_BASE_URL` — a public folder (R2 public URL, public S3, CDN); each
+  manifest path is appended to the base. Read anonymously: no credentials, so no API
+  key has to be handed to the whole team just to see images.
+* `PROJECT_IMAGES_ARCHIVE_URL` — a single .tar.gz file; one request instead of ~180.
 
-Ba tinh chat bat buoc:
+Three required properties:
 
-* **Idempotent** — bo qua anh da co tren MinIO va chi bo qua buoc nap catalogue khi
-  catalogue da co du lieu. Anh van duoc doi chieu moi lan khoi dong de mot MinIO cu
-  khong bi ket vinh vien khi manifest co them file moi.
-* **Khong bao gio chan khoi dong** — nguon loi, MinIO chua san sang hay thieu bien
-  moi truong chi lam hong du lieu demo, khong phai ly do de ca API sap.
-* **Khong tu y ra Internet khi chua duoc cau hinh** — thieu ca hai bien thi bo qua
-  im lang kem mot dong log, khong doan mo URL.
+* **Idempotent** — images already in MinIO are skipped, and the catalogue load is only
+  skipped when the catalogue already has data. Images are still reconciled on every
+  start so an old MinIO is never stuck forever when the manifest gains new files.
+* **Never blocks startup** — a broken source, MinIO not being ready or a missing
+  environment variable only degrades the demo data; none of them is a reason for the
+  whole API to go down.
+* **Never reaches the Internet unless configured** — with neither variable set the step
+  is skipped quietly with one log line, without guessing a URL.
 """
 
 import json
@@ -76,20 +77,20 @@ def _expected_catalogue_ids() -> set[str]:
             if project_id:
                 ids.add(project_id)
         except (OSError, ValueError, TypeError):
-            logger.warning("Khong doc duoc catalogue seed %s.", path, exc_info=True)
+            logger.warning("Could not read catalogue seed file %s.", path, exc_info=True)
     return ids
 
 
 def _read_manifest() -> list[str]:
     path = Path(__file__).resolve().parents[2] / "seed-data" / "project_images_manifest.json"
     if not path.exists():
-        logger.warning("Khong thay manifest anh tai %s — bo qua buoc tai anh.", path)
+        logger.warning("No image manifest at %s; skipping the image download step.", path)
         return []
     return json.loads(path.read_text(encoding="utf-8")).get("images", [])
 
 
 def _download_archive_to_minio(archive_url: str) -> int:
-    """Tai mot .tar.gz chua toan bo anh roi nap vao MinIO. Tra ve so anh da nap moi."""
+    """Download one .tar.gz holding every image and load it into MinIO. Returns the number of new images."""
     import tarfile
     import tempfile
 
@@ -123,7 +124,7 @@ def _download_archive_to_minio(archive_url: str) -> int:
                     continue
                 name = member.name.lstrip("./")
                 if name.startswith("/") or ".." in name.split("/"):
-                    logger.warning("Bo qua duong dan bat thuong trong archive: %r", member.name)
+                    logger.warning("Skipping unexpected path in the archive: %r", member.name)
                     continue
                 if name in existing:
                     continue
@@ -134,7 +135,7 @@ def _download_archive_to_minio(archive_url: str) -> int:
                     client.put_object(bucket, name, cast(BinaryIO, member_stream), length=member.size)
                     loaded += 1
                 except S3Error:
-                    logger.warning("Nap anh '%s' vao MinIO that bai.", name, exc_info=True)
+                    logger.warning("Uploading image '%s' to MinIO failed.", name, exc_info=True)
     return loaded
 
 
@@ -174,7 +175,7 @@ def _download_images_to_minio(base_url: str) -> int:
             )
             return True
         except Exception:
-            logger.warning("Tai anh '%s' that bai.", object_name, exc_info=True)
+            logger.warning("Downloading image '%s' failed.", object_name, exc_info=True)
             return False
 
     with ThreadPoolExecutor(max_workers=_DOWNLOAD_WORKERS) as pool:
@@ -182,11 +183,11 @@ def _download_images_to_minio(base_url: str) -> int:
 
 
 def _sync_project_images() -> None:
-    """Doi chieu manifest va nap rieng cac anh MinIO con thieu.
+    """Reconcile the manifest and upload only the images MinIO is missing.
 
-    Anh va catalogue co vong doi khac nhau: MySQL da day du khong co nghia bucket
-    MinIO da day du (volume moi, manifest moi, hoac lan tai R2 truoc bi ngat). Vi vay
-    ham nay phai chay truoc phep kiem tra catalogue trong moi lan bootstrap.
+    Images and the catalogue have different lifecycles: a complete MySQL does not mean the
+    MinIO bucket is complete (a new volume, a new manifest, or an interrupted earlier R2
+    download). So this function must run before the catalogue check on every bootstrap.
     """
     settings = get_settings()
     archive_url = settings.project_images_archive_url
@@ -195,19 +196,24 @@ def _sync_project_images() -> None:
     if archive_url:
         try:
             count = _download_archive_to_minio(archive_url)
-            logger.info("Nap anh du an tu archive xong — %d anh moi.", count)
+            logger.info("Loaded project images from the archive: %d new images.", count)
         except Exception:
-            logger.error("Nap anh du an tu archive that bai — trang Tra cuu se thieu anh.", exc_info=True)
+            logger.error(
+                "Loading project images from the archive failed; the catalogue pages will be missing images.",
+                exc_info=True,
+            )
     elif base_url:
         try:
             count = _download_images_to_minio(base_url)
-            logger.info("Tai anh du an vao MinIO xong — %d anh moi.", count)
+            logger.info("Uploaded project images to MinIO: %d new images.", count)
         except Exception:
-            logger.error("Tai anh du an that bai — trang Tra cuu se thieu anh.", exc_info=True)
+            logger.error(
+                "Downloading project images failed; the catalogue pages will be missing images.", exc_info=True
+            )
     else:
         logger.warning(
-            "Chua dat PROJECT_IMAGES_BASE_URL hay PROJECT_IMAGES_ARCHIVE_URL — bo qua "
-            "buoc tai anh, catalogue se hien thi khong co anh."
+            "Neither PROJECT_IMAGES_BASE_URL nor PROJECT_IMAGES_ARCHIVE_URL is set; skipping the "
+            "image download step, so the catalogue will show no images."
         )
 
 
@@ -251,16 +257,16 @@ def load_demo_data() -> None:
     try:
         refreshed = _sync_catalogue_galleries()
         if refreshed:
-            logger.info("Cap nhat gallery tu manifest cho %d du an.", refreshed)
+            logger.info("Updated galleries from the manifest for %d projects.", refreshed)
     except Exception:
-        logger.warning("Khong dong bo duoc gallery catalogue tu manifest.", exc_info=True)
+        logger.warning("Could not sync catalogue galleries from the manifest.", exc_info=True)
 
     try:
         if _catalogue_is_loaded():
-            logger.info("Catalogue da co du lieu — bo qua buoc nap catalogue.")
+            logger.info("Catalogue already has data; skipping the catalogue load.")
             return
     except Exception:
-        logger.warning("Khong kiem tra duoc trang thai catalogue.", exc_info=True)
+        logger.warning("Could not check whether the catalogue is loaded.", exc_info=True)
 
     from scripts.load_apartment_projects import main as load_apartments
     from scripts.load_villa_shop_projects import main as load_villas_and_shops
@@ -273,6 +279,8 @@ def load_demo_data() -> None:
     ):
         try:
             loader()
-            logger.info("Nap catalogue '%s' thanh cong.", label)
+            logger.info("Loaded catalogue '%s'.", label)
         except Exception:
-            logger.error("Nap catalogue '%s' that bai — trang Tra cuu se thieu du lieu.", label, exc_info=True)
+            logger.error(
+                "Loading catalogue '%s' failed; the catalogue pages will be missing data.", label, exc_info=True
+            )

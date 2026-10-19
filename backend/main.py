@@ -74,7 +74,7 @@ def _warm_sparse_model() -> None:
 async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info(
-        "Khoi dong %s (%s)",
+        "Starting %s (%s)",
         settings.app_name,
         settings.app_env,
         extra={"event": "app.startup", "app_name": settings.app_name, "app_env": settings.app_env},
@@ -85,15 +85,15 @@ async def lifespan(app: FastAPI):
     if settings.hybrid_search_enabled:
         threading.Thread(target=_warm_sparse_model, name="bm25-warmup", daemon=True).start()
     yield
-    logger.info("Dang tat ung dung.", extra={"event": "app.shutdown"})
+    logger.info("Shutting down.", extra={"event": "app.shutdown"})
 
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="SalesMate AI Agent",
-    description="Trợ lý AI RAG cho đội Sale bất động sản — Ingestion, Retrieval, Verify, HITL.",
+    title="Auremont AI Agent",
+    description="RAG assistant for real-estate sales teams: ingestion, retrieval, verification and HITL.",
     version="1.0.0",
     lifespan=lifespan,
 )

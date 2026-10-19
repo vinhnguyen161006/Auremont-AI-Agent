@@ -9,8 +9,8 @@ from backend.core.enums import UserRole
 from backend.core.mysql_client import get_db
 from backend.main import app
 from backend.models.user import User
-from backend.services import agent_pipeline
-from backend.services.agent_pipeline import PipelineResult
+from backend.services.chat import agent_pipeline
+from backend.services.chat.agent_pipeline import PipelineResult
 
 
 @pytest.fixture

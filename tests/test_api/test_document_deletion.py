@@ -1,8 +1,8 @@
-"""Xóa tài liệu phải xóa cả vector.
+"""Deleting a document must delete its vectors too.
 
-Retrieval đọc Qdrant, không đọc MySQL. Xóa row mà để lại chunk nghĩa là Agent vẫn
-báo giá theo bảng giá Admin tưởng đã gỡ, kèm citation trỏ tới `document_id` không
-còn tồn tại.
+Retrieval reads Qdrant, not MySQL. Deleting the row but leaving the chunks means the
+Agent keeps quoting prices from a price list the Admin believes is gone, with citations
+pointing at a `document_id` that no longer exists.
 """
 
 import pytest
@@ -16,7 +16,7 @@ from backend.models.user import User
 from backend.repositories.document import create_document, get_document
 from backend.routers import documents as documents_router
 from backend.schemas.document import DocumentCreate
-from backend.services.vector_store_service import VectorStoreError
+from backend.services.documents.vector_store_service import VectorStoreError
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def admin(db_session):
 
 @pytest.fixture
 def deleted_vectors(monkeypatch):
-    """Ghi lại document_id đã được yêu cầu xóa khỏi Qdrant."""
+    """Record the document_ids whose removal from Qdrant was requested."""
     calls: list[int] = []
     monkeypatch.setattr(documents_router, "delete_document_vectors", calls.append)
     return calls

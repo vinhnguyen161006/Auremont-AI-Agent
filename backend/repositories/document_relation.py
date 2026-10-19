@@ -8,8 +8,8 @@ from backend.core.enums import (
 )
 from backend.models.document import Document
 from backend.models.document_relation import DocumentRelation
-from backend.schemas.document_relation import DocumentRelationCreate
-from backend.services.vector_store_service import document_vector_metadata_snapshot
+from backend.schemas.document import DocumentRelationCreate
+from backend.services.documents.vector_store_service import document_vector_metadata_snapshot
 from backend.utils.time import utcnow
 
 

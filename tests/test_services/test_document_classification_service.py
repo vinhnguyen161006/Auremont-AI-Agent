@@ -6,8 +6,8 @@ from pydantic import ValidationError
 
 from backend.core.config import settings
 from backend.core.enums import DocumentCategory, LegalStatus
-from backend.services import document_classification_service as classification_service
-from backend.services.document_classification_service import (
+from backend.services.documents import document_classification_service as classification_service
+from backend.services.documents.document_classification_service import (
     ConflictFact,
     DocumentClassification,
     DocumentClassificationError,

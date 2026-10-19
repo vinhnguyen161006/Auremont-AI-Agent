@@ -9,7 +9,7 @@ run_pipeline never received anything but the bare current-turn query.
 
 from backend.ai import prompts
 from backend.core.enums import DocumentVisibility, MessageSender
-from backend.services import agent_pipeline
+from backend.services.chat import agent_pipeline
 
 
 def _history():

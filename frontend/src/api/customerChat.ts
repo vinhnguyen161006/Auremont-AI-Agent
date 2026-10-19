@@ -8,9 +8,8 @@
 // common case harder to reason about for no benefit.
 
 import { getVisitorSession } from "../hooks/useVisitorToken";
+import { API_BASE_URL } from "./client";
 import { extractErrorMessage } from "./errorMessage";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
 export class CustomerApiError extends Error {
   status: number;

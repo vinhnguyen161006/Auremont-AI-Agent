@@ -6,7 +6,7 @@ everything below that (the emotion assignment at each return site) runs for real
 """
 
 from backend.core.enums import MessageEmotion
-from backend.services import agent_pipeline
+from backend.services.chat import agent_pipeline
 
 
 class _FakeGraph:
