@@ -210,8 +210,8 @@ const METROPOLITAN_LOCATIONS: MapPin[] = [{ number: 1, name: "The Zurich", left:
 
 // Position of "The Beverly" — matches the YELLOW zone in the reference mockup
 // vi-tri-the-metropolitan-vinhomes-ocean-park.jpg (distinct from Zurich's blue
-// zone). The marker follows the shared Auremont blue palette for UI consistency.
-const BEVERLY_LOCATION: MapPin[] = [{ number: 2, name: "The Beverly", left: "62%", top: "42%", color: "#2e7bff" }];
+// zone). The marker follows the shared Auremont gold palette for UI consistency.
+const BEVERLY_LOCATION: MapPin[] = [{ number: 2, name: "The Beverly", left: "62%", top: "42%", color: "#b8955a" }];
 
 function MetropolitanLocationMap({ locations = METROPOLITAN_LOCATIONS }: { locations?: MapPin[] }) {
   return (

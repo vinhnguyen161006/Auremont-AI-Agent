@@ -207,7 +207,8 @@ function AppShell() {
         </Routes>
       </div>
 
-      {!isLiveChatPage && <Footer />}
+      {/* The marketing footer (contact, resources) means nothing inside the admin console. */}
+      {role !== "admin" && !isLiveChatPage && <Footer />}
       {role !== "admin" && !isLiveChatPage && <ChatWidget />}
       {role !== "admin" && !isLiveChatPage && <BackToChatButton />}
     </div>

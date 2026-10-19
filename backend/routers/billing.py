@@ -86,14 +86,14 @@ def _owned_subscription(db: Session, user: User, *, require_owner: bool) -> Subs
 
 
 @router.get("/plans", response_model=list[PlanResponse])
-async def get_plans(db: Session = Depends(get_db)) -> list[PlanResponse]:
+def get_plans(db: Session = Depends(get_db)) -> list[PlanResponse]:
     """The published pricing table. Unauthenticated: the marketing page renders from this
     so the site and the biller can never quote different numbers."""
     return [PlanResponse.model_validate(plan) for plan in billing_service.list_active_plans(db)]
 
 
 @router.get("/quote", response_model=QuoteResponse)
-async def get_quote(plan_id: str, seats: int, db: Session = Depends(get_db)) -> QuoteResponse:
+def get_quote(plan_id: str, seats: int, db: Session = Depends(get_db)) -> QuoteResponse:
     """Price a plan at a seat count for the confirmation screen, so the total the applicant
     approves is computed by the same code that will store it."""
     try:
@@ -107,7 +107,7 @@ async def get_quote(plan_id: str, seats: int, db: Session = Depends(get_db)) -> 
     response_model=SubscriptionRequestResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def submit_subscription_request(
+def submit_subscription_request(
     payload: SubscriptionRequestCreate,
     db: Session = Depends(get_db),
     _: None = Depends(anonymous_rate_limit),
@@ -131,7 +131,7 @@ async def submit_subscription_request(
 
 
 @router.get("/my-subscription", response_model=SubscriptionResponse)
-async def get_my_subscription(
+def get_my_subscription(
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN)),
 ) -> SubscriptionResponse:
@@ -141,7 +141,7 @@ async def get_my_subscription(
 
 
 @router.post("/subscription/change", response_model=SubscriptionResponse)
-async def change_subscription(
+def change_subscription(
     payload: SubscriptionChangeRequest,
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN)),
@@ -171,7 +171,7 @@ async def change_subscription(
 
 
 @router.post("/subscription/cancel", response_model=SubscriptionResponse)
-async def cancel_subscription(
+def cancel_subscription(
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN)),
 ) -> SubscriptionResponse:

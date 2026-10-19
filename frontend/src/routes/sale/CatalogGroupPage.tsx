@@ -78,7 +78,7 @@ export function CatalogGroupPage() {
             if (!data) {
               return (
                 <div key={p.name} className="project-card project-card--disabled" style={{ cursor: "default" }}>
-                  <div className="project-card-media" style={{ background: "linear-gradient(135deg, #0050ef, #0a2e7a)" }}>
+                  <div className="project-card-media" style={{ background: "var(--grad-primary)" }}>
                     <BuildingHomeIcon size={30} className="project-card-media-icon" />
                   </div>
                   <div className="project-card-body">
@@ -92,7 +92,7 @@ export function CatalogGroupPage() {
             }
             const media = data.coverImage
               ? { backgroundImage: `url(${data.coverImage})`, backgroundSize: "cover", backgroundPosition: "center" }
-              : { background: "linear-gradient(135deg, #0050ef, #0a2e7a)" };
+              : { background: "var(--grad-primary)" };
             return (
               <Link key={data.id} to={`/inventory/project/${data.id}`} className="project-card">
                 <div className="project-card-media" style={media}>

@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./styles/design-system.css";
 import "./styles/salesmate.css";
 import "./styles/avatar.css";
+import "./styles/luxe.css";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import App from "./App.tsx";

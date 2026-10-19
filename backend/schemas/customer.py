@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from backend.core.enums import SessionStatus
-from backend.schemas.message import MessageResponse
+from backend.schemas.message import ChatText, MessageResponse
 from backend.utils.phone import normalise_vn_mobile
 
 
@@ -54,7 +54,7 @@ class CustomerChatSessionResponse(BaseModel):
 
 
 class CustomerAskRequest(BaseModel):
-    content: str
+    content: ChatText
 
 
 class CustomerAskResponse(MessageResponse):

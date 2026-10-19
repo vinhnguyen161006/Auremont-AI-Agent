@@ -10,7 +10,6 @@ unit codes would quietly destroy the field that exists to reproduce a wrong answ
 nobody would notice until they needed it.
 """
 
-import asyncio
 from dataclasses import dataclass
 
 import pytest
@@ -131,11 +130,9 @@ def test_a_failed_registration_records_no_email(monkeypatch):
     monkeypatch.setattr(customer_chat, "get_user_by_email", lambda _db, _email: object())
 
     with pytest.raises(HTTPException):
-        asyncio.run(
-            customer_chat.register_customer(
-                _RegisterPayload(email="someone@example.com", password="x", full_name="A"),
-                db=None,
-            )
+        customer_chat.register_customer(
+            _RegisterPayload(email="someone@example.com", password="x", full_name="A"),
+            db=None,
         )
 
     assert events, "the failure was not audited at all"

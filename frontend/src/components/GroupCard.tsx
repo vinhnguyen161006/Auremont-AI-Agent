@@ -18,7 +18,7 @@ export function GroupCard({ group, projectsById }: Props) {
 
   const media = cover
     ? { backgroundImage: `url(${cover})`, backgroundSize: "cover", backgroundPosition: "center" }
-    : { background: "linear-gradient(135deg, #0050ef, #0a2e7a)" };
+    : { background: "var(--grad-primary)" };
 
   const priceLine = withData
     .map((p) => p.priceFrom)

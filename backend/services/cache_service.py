@@ -24,7 +24,7 @@ from qdrant_client import models
 from backend.core.config import settings
 from backend.core.enums import DocumentVisibility
 from backend.core.gemini_client import embed_query
-from backend.core.qdrant_client import get_qdrant_client
+from backend.core.qdrant_client import collection_exists_cached, forget_collection, get_qdrant_client
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def lookup_cache(
 
     try:
         client = get_qdrant_client()
-        if not client.collection_exists(CACHE_COLLECTION):
+        if not collection_exists_cached(client, CACHE_COLLECTION):
             return None
 
         response = client.query_points(
@@ -169,6 +169,7 @@ def clear_cache() -> None:
         client = get_qdrant_client()
         if client.collection_exists(CACHE_COLLECTION):
             client.delete_collection(CACHE_COLLECTION)
+        forget_collection(client, CACHE_COLLECTION)
     except Exception:
         logger.warning(
             "Cache clear failed; stale cached answers may persist until they expire on their own.",
@@ -179,7 +180,7 @@ def clear_cache() -> None:
 
 def _ensure_cache_collection() -> None:
     client = get_qdrant_client()
-    if client.collection_exists(CACHE_COLLECTION):
+    if collection_exists_cached(client, CACHE_COLLECTION):
         return
 
     client.create_collection(

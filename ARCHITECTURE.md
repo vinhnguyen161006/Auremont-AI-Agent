@@ -125,7 +125,7 @@ Separate flow from Sale's own chat. Anonymous sessions use a `visitor_token`; lo
 ### Agent Pipeline (LangGraph)
 One `StateGraph`, 13 nodes: `preflight → scope_resolve → cache_check → retrieve → criteria_resolve → tool_call → criteria_diagnose → image_tool → generate → verify → risk_check`, with `bump_retry`/`low_confidence` on the retry path.
 
-- **preflight** — early exits (e.g. conversation-meta questions) before any retrieval.
+- **preflight** — early exits before any retrieval: prompt-injection attempts (`backend/ai/guardrails.py` — instruction overrides, system-prompt probes, role reassignment, jailbreak modes, fake role markup), illegal/privacy/discrimination/scam/rental policies, and memory-recall questions.
 - **scope_resolve** — resolves project/topic scope for the question.
 - **cache_check** — semantic cache (Qdrant, normalized similarity ≥ 0.95); skipped when there is conversation history, a personalization profile, or active search criteria.
 - **retrieve** — Qdrant search.
@@ -139,6 +139,12 @@ One `StateGraph`, 13 nodes: `preflight → scope_resolve → cache_check → ret
 - **bump_retry / low_confidence** — one retry max, always carrying the Verifier's feedback (never a blind repeat); declines to "insufficient information" when still low.
 
 Verify is skipped for image-only answers, conversation-meta questions, and empty-context openers — `risk_check` still runs in all three.
+
+### Guardrails and latency budget
+- **Input**: every chat request body goes through `ChatText` (`backend/schemas/message.py`) — NFC-normalised, zero-width/bidi/control characters stripped, empty rejected, capped at `CHAT_MAX_QUERY_CHARS`. `preflight` then refuses injection attempts deterministically, before the cache, retrieval or any model call.
+- **Prompt**: the question and transcript sit inside `<user_question>` / `<conversation_history>` with markup escaped, exactly as retrieved text sits inside `<retrieved_document>`; the system instructions declare all three as data. The Verifier wraps question, context and answer the same way so a draft cannot instruct its own judge.
+- **Output**: an answer reproducing a line of the system instructions (or a prompt tag) is withheld and replaced by the refusal notice.
+- **Latency**: live-path Gemini calls (generate, verify, lead scoring) run with the minimum thinking budget and per-call timeouts; query embeddings retry once with a capped delay instead of ingestion's quota backoff; the one Verifier retry runs only if a second generate+verify round, timed like the first, still fits `CHAT_LATENCY_BUDGET_SECONDS` (default 5 s) — otherwise the low-confidence notice is returned at once. Lead scoring's LLM pass overlaps the answer on a worker thread, chat endpoints are sync handlers (FastAPI threadpool) so one slow answer never blocks the event loop, project rows are read once per request, Qdrant collection existence is remembered for a minute, Redis calls time out after 0.5 s and the inventory API after 2.5 s (each falls back instead of failing the answer), and the BM25 model is loaded on a background thread at startup rather than inside the first question.
 
 ```mermaid
 graph LR

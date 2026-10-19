@@ -99,13 +99,8 @@
   height: 100%;
 }
 
-/* ── idle — the resting loop whenever no other emotion is active ── */
-.aura-avatar--idle .aura-torso {
-  animation: aura-breathe 3.2s ease-in-out infinite;
-}
-.aura-avatar--idle .aura-head {
-  animation: aura-idle-sway 4.6s ease-in-out infinite;
-}
+/* ── idle — deliberately still: every bot message carries an idle avatar, and a loop on
+   each of them kept the chat repainting forever. ── */
 
 /* ── greeting — onboarding wave (Kịch bản 1): raise into the open-palm wave pose, wiggle it
    side to side a few times, then lower back to the resting arm naturally — a pose SWAP
@@ -125,8 +120,9 @@
 .aura-avatar--thinking .aura-head {
   animation: aura-tilt-hold 0.5s ease-out forwards;
 }
+/* One tap, then the hand holds at the chin — no endless loop while waiting. */
 .aura-avatar--thinking .aura-arm-right {
-  animation: aura-chin-tap 1.5s ease-in-out infinite;
+  animation: aura-chin-tap 1.5s ease-in-out forwards;
 }
 
 /* ── happy — tìm thấy tồn kho, câu trả lời tốt (Kịch bản 2 & 3) ── */
@@ -162,16 +158,6 @@
 }
 
 /* ── keyframes ── */
-
-@keyframes aura-breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.018); }
-}
-
-@keyframes aura-idle-sway {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-2deg); }
-}
 
 /* The resting left arm fades out as the wave pose fades in (8-15%), holds hidden while it
    waves, then fades back — with a small overshoot (90%) so it reads as dropping into place

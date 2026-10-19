@@ -35,7 +35,7 @@ router = APIRouter(
 
 
 @router.get("/subscription-requests", response_model=SubscriptionRequestListResponse)
-async def list_subscription_requests(
+def list_subscription_requests(
     request_status: str | None = Query(default=None, alias="status"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
@@ -66,7 +66,7 @@ async def list_subscription_requests(
 
 
 @router.patch("/subscription-requests/{request_id}", response_model=SubscriptionRequestResponse)
-async def review_subscription_request(
+def review_subscription_request(
     request_id: int,
     payload: SubscriptionRequestReview,
     db: Session = Depends(get_db),

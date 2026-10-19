@@ -7,7 +7,6 @@ import { SessionList } from "./SessionList";
 import { ChatSuggestions } from "./ChatSuggestions";
 import { AuremontAvatar } from "../../components/AuremontAvatar";
 import { useAuth } from "../../hooks/useAuth";
-import { useCursorTrail } from "../../hooks/useCursorTrail";
 
 // ChatGPT-style shell: Session sidebar on the left, main chat panel, and a
 // context panel on the right.
@@ -16,7 +15,6 @@ export function SalePage() {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<ChatSessionResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const { layerRef: particleLayerRef, handleMouseMove: handleChatMouseMove } = useCursorTrail();
 
   const reload = useCallback(() => {
     api
@@ -47,8 +45,7 @@ export function SalePage() {
         <Route
           path="*"
           element={
-            <div className="chat-page" onMouseMove={handleChatMouseMove}>
-              <div className="cursor-particle-layer" ref={particleLayerRef} aria-hidden="true" />
+            <div className="chat-page">
               <div className="chat-messages">
                 <div className="chat-messages-inner">
                   <div className="chat-landing">

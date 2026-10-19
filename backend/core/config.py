@@ -44,6 +44,17 @@ class Settings(BaseSettings):
     # Free-tier quota is counted per model, so keeping these off the answer model stops a
     # busy chat day from also blocking document ingestion and conflict review.
     gemini_model_background: str = "gemini-3.5-flash-lite"
+    # Hard ceiling for any Gemini request; live-path calls set tighter per-call limits below.
+    gemini_request_timeout_seconds: float = Field(default=30.0, gt=0, le=300)
+    # Minimal reasoning budget on the live chat path (answer, verifier, lead scoring).
+    gemini_low_latency_thinking: bool = True
+    # End-to-end target for one chat answer (SLO.md: p95 <= 5 s). The Verifier retry is
+    # skipped when it would not fit in what is left of this budget.
+    chat_latency_budget_seconds: float = Field(default=5.0, gt=0, le=60)
+    generate_timeout_seconds: float = Field(default=8.0, gt=0, le=60)
+    verifier_timeout_seconds: float = Field(default=3.0, gt=0, le=60)
+    lead_scoring_timeout_seconds: float = Field(default=3.0, gt=0, le=60)
+    chat_max_query_chars: int = Field(default=2000, ge=50, le=20_000)
     classification_auto_approve_threshold: float = Field(default=0.9, ge=0.0, le=1.0)
     classification_require_admin_approval_before_indexing: bool = True
     semantic_conflict_detection_enabled: bool = True
@@ -68,7 +79,7 @@ class Settings(BaseSettings):
     rerank_enabled: bool = False
     cohere_api_key: str = ""
     cohere_rerank_model: str = "rerank-v3.5"
-    cohere_rerank_timeout_seconds: float = Field(default=2.5, gt=0, le=30)
+    cohere_rerank_timeout_seconds: float = Field(default=1.5, gt=0, le=30)
 
     rag_max_context_chars: int = Field(default=12_000, ge=1_000, le=100_000)
     rag_duplicate_similarity_threshold: float = Field(default=0.88, ge=0.5, le=1.0)

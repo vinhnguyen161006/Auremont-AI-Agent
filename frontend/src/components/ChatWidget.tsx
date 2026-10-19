@@ -451,6 +451,7 @@ export function ChatWidget() {
                 <input
                   type="text"
                   placeholder="Đặt câu hỏi cho Auremont AI..."
+                  maxLength={2000}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}

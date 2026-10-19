@@ -18,6 +18,7 @@ import {
   DocumentIcon,
   GlobeIcon,
   HomeIcon,
+  LayersIcon,
   LogInIcon,
   LogOutIcon,
   MenuIcon,
@@ -40,19 +41,24 @@ interface AdminNavEntry {
   icon: (p: { size?: number }) => React.ReactElement;
   roles: UserRole[];
   end?: boolean;
+  /** Desktop dropdown this entry lives under; ungrouped entries sit directly in the bar. */
+  group?: string;
 }
 
 // ADMIN manages the document store and AI quality monitoring; no separate inventory menu.
+// Grouped so the desktop bar stays one row — eight flat links wrapped onto two.
 const ADMIN_NAV: AdminNavEntry[] = [
-  { to: "/sales", label: "Quản lý Sale", icon: UsersIcon, roles: ["admin"] },
   { to: "/news-workspace", label: "Duyệt tin", icon: GlobeIcon, roles: ["admin"] },
-  { to: "/observability", label: "Giám sát hệ thống", icon: ActivityIcon, roles: ["admin"] },
-  { to: "/documents", label: "Kho tài liệu", icon: DocumentIcon, roles: ["admin"] },
-  { to: "/document-review", label: "Duyệt metadata", icon: CheckIcon, roles: ["admin"] },
-  { to: "/eval", label: "Chất lượng trả lời", icon: ChartIcon, roles: ["admin"] },
-  { to: "/conflicts", label: "Cảnh báo mâu thuẫn", icon: AlertIcon, roles: ["admin"] },
-  { to: "/billing-requests", label: "Đăng ký doanh nghiệp", icon: BuildingIcon, roles: ["admin"] },
+  { to: "/sales", label: "Quản lý Sale", icon: UsersIcon, roles: ["admin"], group: "Kinh doanh" },
+  { to: "/billing-requests", label: "Đăng ký doanh nghiệp", icon: BuildingIcon, roles: ["admin"], group: "Kinh doanh" },
+  { to: "/documents", label: "Kho tài liệu", icon: DocumentIcon, roles: ["admin"], group: "Tri thức" },
+  { to: "/document-review", label: "Duyệt metadata", icon: CheckIcon, roles: ["admin"], group: "Tri thức" },
+  { to: "/document-relations", label: "Quan hệ tài liệu", icon: LayersIcon, roles: ["admin"], group: "Tri thức" },
+  { to: "/conflicts", label: "Cảnh báo mâu thuẫn", icon: AlertIcon, roles: ["admin"], group: "Tri thức" },
+  { to: "/observability", label: "Giám sát hệ thống", icon: ActivityIcon, roles: ["admin"], group: "Chất lượng AI" },
+  { to: "/eval", label: "Chất lượng trả lời", icon: ChartIcon, roles: ["admin"], group: "Chất lượng AI" },
 ];
+const ADMIN_GROUPS = [...new Set(ADMIN_NAV.flatMap((entry) => (entry.group ? [entry.group] : [])))];
 
 // Ocean Park 1 is the only mega-project with real data so far — its product types
 // (apartments/villas/shophouses) become the top-level menu, and each dropdown lists
@@ -340,7 +346,7 @@ export function TopNavbar() {
         )}
 
         {role === "admin" &&
-          ADMIN_NAV.map((item) => (
+          ADMIN_NAV.filter((item) => !item.group).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -350,6 +356,44 @@ export function TopNavbar() {
               {item.label}
             </NavLink>
           ))}
+
+        {role === "admin" &&
+          ADMIN_GROUPS.map((group) => {
+            const items = ADMIN_NAV.filter((item) => item.group === group);
+            const isActive = items.some((item) => location.pathname.startsWith(item.to));
+            const isOpen = openDropdown === group;
+            return (
+              <div
+                key={group}
+                className="topnav-item"
+                onMouseEnter={() => setOpenDropdown(group)}
+                onMouseLeave={() => setOpenDropdown(null)}
+              >
+                <button
+                  type="button"
+                  className={`topnav-link ${isActive ? "topnav-link--active" : ""}`}
+                  aria-expanded={isOpen}
+                  onClick={() => setOpenDropdown(isOpen ? null : group)}
+                >
+                  {group}
+                  <ChevronRightIcon size={12} className="topnav-caret" />
+                </button>
+                <div className={`topnav-dropdown ${isOpen ? "topnav-dropdown--open" : ""}`}>
+                  {items.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setOpenDropdown(null)}
+                      className="topnav-dropdown-item"
+                    >
+                      <item.icon size={14} />
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
       </nav>
 
       <div className="topnav-right">

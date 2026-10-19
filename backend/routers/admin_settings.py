@@ -19,13 +19,13 @@ class SettingsUpdateRequest(BaseModel):
 
 
 @router.get("", response_model=SettingsResponse)
-async def get_settings_values() -> SettingsResponse:
+def get_settings_values() -> SettingsResponse:
     settings = get_settings()
     return SettingsResponse(verifier_threshold_sale=settings.verifier_threshold_sale)
 
 
 @router.put("", response_model=SettingsResponse)
-async def update_settings_values(payload: SettingsUpdateRequest) -> SettingsResponse:
+def update_settings_values(payload: SettingsUpdateRequest) -> SettingsResponse:
     """Not implemented: the Verifier threshold is env-configured, not editable at runtime.
 
     This used to echo the submitted value back with 200 OK while storing nothing. `Settings`

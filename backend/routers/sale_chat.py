@@ -28,7 +28,7 @@ from backend.repositories.message import (
     list_messages_for_session,
 )
 from backend.schemas.chat_session import ChatSessionCreate, ChatSessionResponse
-from backend.schemas.message import MessageResponse
+from backend.schemas.message import ChatText, MessageResponse
 from backend.services import agent_pipeline, memory_service, reflection_memory, search_criteria
 
 router = APIRouter(
@@ -39,7 +39,7 @@ router = APIRouter(
 
 
 class SaleAskRequest(BaseModel):
-    content: str
+    content: ChatText
 
 
 def _conversation_history(db: Session, session_id: int) -> list[dict]:
@@ -79,7 +79,7 @@ def _owned_session(db: Session, session_id: int, user: User):
 
 
 @router.post("", response_model=ChatSessionResponse, status_code=status.HTTP_201_CREATED)
-async def create_sale_session(
+def create_sale_session(
     payload: ChatSessionCreate,
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN)),
@@ -88,14 +88,14 @@ async def create_sale_session(
 
 
 @router.get("", response_model=list[ChatSessionResponse])
-async def list_sale_sessions(
+def list_sale_sessions(
     db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> list[ChatSession]:
     return list_sessions_for_sale(db, sale_id=user.id)
 
 
 @router.get("/{session_id}/messages", response_model=list[MessageResponse])
-async def list_session_messages(
+def list_session_messages(
     session_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> list[MessageResponse]:
     _owned_session(db, session_id, user)
@@ -112,7 +112,7 @@ async def list_session_messages(
 
 
 @router.post("/{session_id}/messages", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
-async def ask_in_session(
+def ask_in_session(
     session_id: int,
     payload: SaleAskRequest,
     db: Session = Depends(get_db),
@@ -190,7 +190,7 @@ async def ask_in_session(
 
 
 @router.delete("/{session_id}/messages", status_code=status.HTTP_204_NO_CONTENT)
-async def clear_session_messages(
+def clear_session_messages(
     session_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> None:
     """Clear the chat history but keep the session (the "Xóa chat" button in ChatWindow).
@@ -206,7 +206,7 @@ async def clear_session_messages(
 
 
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_sale_session(
+def remove_sale_session(
     session_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> None:
     """Delete the consultation session and all its messages — the delete button in SessionList."""

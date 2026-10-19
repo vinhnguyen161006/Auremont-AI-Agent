@@ -140,7 +140,7 @@ def _open_conflicts_trend(rows: list[tuple[date, date | None]], days: int) -> li
 
 
 @router.get("/trends")
-async def get_admin_trends(db: Session = Depends(get_db)) -> dict:
+def get_admin_trends(db: Session = Depends(get_db)) -> dict:
     """Sparkline data for AdminHome — computed only from fields that actually exist
     (created_at/resolved_at); does not fabricate numbers for faithfulness/relevancy
     since the real eval pipeline is not wired up yet."""
@@ -157,7 +157,7 @@ async def get_admin_trends(db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/business", response_model=BusinessDashboardResponse)
-async def get_business_dashboard(
+def get_business_dashboard(
     days: int = Query(default=14, ge=7, le=90),
     project_id: str | None = None,
     sale_id: int | None = None,
@@ -366,7 +366,7 @@ async def get_business_dashboard(
 
 
 @router.get("/leads", response_model=LeadStatsResponse)
-async def get_lead_stats(
+def get_lead_stats(
     days: int = Query(default=14, ge=7, le=90),
     project_id: str | None = None,
     db: Session = Depends(get_db),

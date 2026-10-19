@@ -18,7 +18,7 @@ export function CategoryCard({ category }: { category: CategorySummary }) {
   const displayName = isShophouse ? SHOPHOUSE_DISPLAY_NAME : category.name;
   const coverImage = category.slug === "chung-cu" ? CHUNG_CU_IMAGE : isShophouse ? SHOPHOUSE_IMAGE : category.coverImage;
 
-  const media = coverImage ? undefined : { background: "linear-gradient(135deg, #0050ef, #0a2e7a)" };
+  const media = coverImage ? undefined : { background: "var(--grad-primary)" };
 
   const sizeLabel =
     category.sizeFrom != null && category.sizeTo != null ? `${category.sizeFrom} - ${category.sizeTo} m²` : null;

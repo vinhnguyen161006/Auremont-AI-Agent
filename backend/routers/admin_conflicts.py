@@ -64,7 +64,7 @@ def _document_summary(document: Document) -> ConflictDocumentSummary:
 
 
 @router.get("", response_model=list[ConflictDetailResponse])
-async def get_conflicts(db: Session = Depends(get_db)) -> list[ConflictDetailResponse]:
+def get_conflicts(db: Session = Depends(get_db)) -> list[ConflictDetailResponse]:
     """conflicting documents (e.g. two price-list versions of the same project)."""
     flags = list_open_conflicts(db)
     document_ids = {document_id for flag in flags for document_id in (flag.document_id_a, flag.document_id_b)}
@@ -119,7 +119,7 @@ async def get_conflicts(db: Session = Depends(get_db)) -> list[ConflictDetailRes
 
 
 @router.post("/{conflict_id}/resolve", response_model=ConflictFlagResponse)
-async def resolve_conflict_flag(
+def resolve_conflict_flag(
     conflict_id: int,
     payload: ConflictResolveRequest,
     db: Session = Depends(get_db),
@@ -197,7 +197,7 @@ async def resolve_conflict_flag(
 
 
 @router.post("/{conflict_id}/dismiss", response_model=ConflictFlagResponse)
-async def dismiss_conflict_flag(
+def dismiss_conflict_flag(
     conflict_id: int,
     db: Session = Depends(get_db),
     admin: User = Depends(require_role(UserRole.ADMIN)),

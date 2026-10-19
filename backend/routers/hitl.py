@@ -15,7 +15,7 @@ router = APIRouter(prefix="/hitl", tags=["HITL"], dependencies=[Depends(require_
 
 
 @router.post("/{message_id}/confirm", response_model=HitlLogResponse)
-async def confirm_hitl(
+def confirm_hitl(
     message_id: int,
     payload: HitlConfirmRequest,
     db: Session = Depends(get_db),

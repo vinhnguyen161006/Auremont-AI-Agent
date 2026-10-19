@@ -36,7 +36,7 @@ router = APIRouter(
 
 
 @router.post("", response_model=SaleStatusResponse, status_code=status.HTTP_201_CREATED)
-async def create_sale_account(
+def create_sale_account(
     payload: SaleAccountCreate,
     db: Session = Depends(get_db),
     admin: User = Depends(require_role(UserRole.ADMIN)),
@@ -102,7 +102,7 @@ def _customer_label(session: ChatSession, customers: dict[int, User]) -> str:
 
 
 @router.get("", response_model=SalesBoardResponse)
-async def get_sales_board(
+def get_sales_board(
     days: int = Query(default=30, ge=7, le=90),
     db: Session = Depends(get_db),
 ) -> SalesBoardResponse:
@@ -250,7 +250,7 @@ async def get_sales_board(
 
 
 @router.patch("/{sale_id}/active", response_model=SaleStatusResponse)
-async def update_sale_active_state(
+def update_sale_active_state(
     sale_id: int,
     payload: SaleActiveUpdate,
     db: Session = Depends(get_db),
@@ -296,7 +296,7 @@ async def update_sale_active_state(
 
 
 @router.post("/reassign", response_model=ManagedLiveSessionResponse)
-async def reassign_customer(
+def reassign_customer(
     payload: SaleReassignRequest,
     db: Session = Depends(get_db),
     admin: User = Depends(require_role(UserRole.ADMIN)),

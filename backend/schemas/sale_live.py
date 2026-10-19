@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from backend.core.enums import LeadPurpose, LeadTier, LeadUrgency
+from backend.schemas.message import ChatText
 
 
 class LiveInboxEntry(BaseModel):
@@ -66,7 +67,7 @@ class LeadDetailResponse(BaseModel):
 
 
 class SaleLiveMessageRequest(BaseModel):
-    content: str
+    content: ChatText
 
 
 class SaleSuggestResponse(BaseModel):

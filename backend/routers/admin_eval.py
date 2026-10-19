@@ -79,7 +79,7 @@ def _pipeline_report_from_traces(
 
 
 @router.get("/scores")
-async def get_eval_scores(db: Session = Depends(get_db)) -> dict:
+def get_eval_scores(db: Session = Depends(get_db)) -> dict:
     """Faithfulness/Answer Relevancy dashboard + the top failed AI answers.
 
     The averages come from the scores the Verifier Agent recorded on each answer as it was
@@ -104,7 +104,7 @@ async def get_eval_scores(db: Session = Depends(get_db)) -> dict:
 
 
 @router.get("/reports", response_model=EvalReportsResponse)
-async def get_eval_reports(db: Session = Depends(get_db)) -> EvalReportsResponse:
+def get_eval_reports(db: Session = Depends(get_db)) -> EvalReportsResponse:
     """Return the latest offline quality artifacts without running either evaluator.
 
     DeepEval can spend many judge calls, so the Admin page only reads its latest report.
@@ -142,7 +142,7 @@ async def get_eval_reports(db: Session = Depends(get_db)) -> EvalReportsResponse
 
 
 @router.get("/audit")
-async def get_audit_log(
+def get_audit_log(
     event: str | None = Query(default=None, description="Exact event name, e.g. auth.login.failure"),
     user_id: int | None = Query(default=None),
     days: int | None = Query(default=None, ge=1, le=365, description="Only events from the last N days"),

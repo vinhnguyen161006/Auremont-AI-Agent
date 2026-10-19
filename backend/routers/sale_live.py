@@ -179,7 +179,7 @@ def _inbox_order(entry: LiveInboxEntry, fairness_minutes: int) -> tuple[int, int
 
 
 @router.get("", response_model=list[LiveInboxEntry])
-async def list_waiting(db: Session = Depends(get_db)) -> list[LiveInboxEntry]:
+def list_waiting(db: Session = Depends(get_db)) -> list[LiveInboxEntry]:
     """Ordered by business priority here rather than in the repository.
 
     `list_waiting_sessions` documents itself as FIFO on `handoff_requested_at`; burying a
@@ -191,7 +191,7 @@ async def list_waiting(db: Session = Depends(get_db)) -> list[LiveInboxEntry]:
 
 
 @router.get("/mine", response_model=list[LiveInboxEntry])
-async def list_mine(
+def list_mine(
     db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> list[LiveInboxEntry]:
     """Sessions this Sale has already claimed and is still chatting through live — without
@@ -201,7 +201,7 @@ async def list_mine(
 
 
 @router.post("/{session_id}/claim", response_model=LiveInboxEntry)
-async def claim(
+def claim(
     session_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> LiveInboxEntry:
     session = claim_for_sale(db, session_id, sale_id=user.id)
@@ -216,7 +216,7 @@ async def claim(
 
 
 @router.get("/{session_id}/lead", response_model=LeadDetailResponse | None)
-async def get_lead_detail(
+def get_lead_detail(
     session_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> LeadDetailResponse | None:
     """The full scoring breakdown for the customer on this live session.
@@ -275,7 +275,7 @@ async def get_lead_detail(
 
 
 @router.get("/{session_id}/messages", response_model=list[MessageResponse])
-async def get_live_messages(
+def get_live_messages(
     session_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> list[Message]:
     """Only what was said on this LIVE row — the customer's AI-era conversation lives in a
@@ -286,7 +286,7 @@ async def get_live_messages(
 
 
 @router.get("/{session_id}/ai-history", response_model=list[MessageResponse])
-async def get_ai_history(
+def get_ai_history(
     session_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> list[Message]:
     """Read-only look at the customer's AI-era conversation, so a Sale isn't forced to make
@@ -300,7 +300,7 @@ async def get_ai_history(
 
 
 @router.get("/{session_id}/customer-summary", response_model=CustomerConversationSummaryResponse)
-async def get_customer_summary(
+def get_customer_summary(
     session_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN)),
@@ -322,7 +322,7 @@ async def get_customer_summary(
 
 
 @router.post("/{session_id}/customer-summary/refresh", response_model=CustomerConversationSummaryResponse)
-async def refresh_customer_summary(
+def refresh_customer_summary(
     session_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN)),
@@ -356,7 +356,7 @@ async def refresh_customer_summary(
 
 
 @router.post("/{session_id}/reply", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
-async def reply(
+def reply(
     session_id: int,
     payload: SaleLiveMessageRequest,
     db: Session = Depends(get_db),
@@ -373,7 +373,7 @@ async def reply(
 
 
 @router.post("/{session_id}/end", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
-async def end(
+def end(
     session_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> MessageResponse:
     """The Sale is done — hand the session back to the AI. Clears `sale_id` (see
@@ -387,7 +387,7 @@ async def end(
 
 
 @router.post("/{session_id}/suggest", response_model=SaleSuggestResponse)
-async def suggest(
+def suggest(
     session_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN))
 ) -> SaleSuggestResponse:
     """Co-pilot: draft a reply to the customer's latest message for the Sale to review and

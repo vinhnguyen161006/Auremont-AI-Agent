@@ -29,7 +29,7 @@ from backend.core.cohere_client import rerank as cohere_rerank
 from backend.core.config import settings
 from backend.core.enums import DocumentCategory, DocumentReviewStatus, DocumentVisibility
 from backend.core.gemini_client import GeminiEmbeddingError, embed_query
-from backend.core.qdrant_client import get_qdrant_client
+from backend.core.qdrant_client import collection_exists_cached, get_qdrant_client
 from backend.core.sparse_embedding import SparseEmbeddingError, embed_query_sparse
 from backend.services.vector_store_service import DENSE_VECTOR, SPARSE_VECTOR
 from backend.utils.text import strip_diacritics
@@ -194,7 +194,7 @@ def retrieve(
 
     client = get_qdrant_client()
     try:
-        if not client.collection_exists(settings.qdrant_collection):
+        if not collection_exists_cached(client, settings.qdrant_collection):
             return []
 
         if sparse_query_vector is not None:

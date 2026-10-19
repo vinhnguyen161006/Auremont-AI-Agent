@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from backend.models.project import Project
+from backend.repositories.project import all_projects
 from backend.services import inventory_service, search_criteria
 
 MAX_CATALOG_OFFERS = 24
@@ -62,7 +63,7 @@ def search_offers(
     scoped_ids = set(project_ids or [])
     excluded_ids = set(excluded_project_ids or [])
     include_children = bool(active.constraints)
-    rows = db.query(Project).all()
+    rows = all_projects(db)
     offers: list[CatalogOffer] = []
 
     for project in rows:
@@ -195,7 +196,7 @@ def build_catalog_overview(db: Session | None) -> str:
         return ""
 
     groups: dict[str, list[str]] = {}
-    for project in db.query(Project).all():
+    for project in all_projects(db):
         details = project.details or {}
         pricing = details.get("pricing") or []
         if not pricing:

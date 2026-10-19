@@ -24,7 +24,7 @@ class SeedUserRequest(BaseModel):
 
 
 @router.post("/users", status_code=status.HTTP_201_CREATED)
-async def seed_test_user(payload: SeedUserRequest, db: Session = Depends(get_db)) -> dict:
+def seed_test_user(payload: SeedUserRequest, db: Session = Depends(get_db)) -> dict:
     if payload.role not in ("sale", "admin"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="role must be 'sale' or 'admin'")
 

@@ -25,7 +25,8 @@ from backend.utils.vnd import BUDGET_UNIT_ALTERNATION_WITH_BARE_T, Profile, pars
 
 logger = logging.getLogger(__name__)
 
-INVENTORY_TIMEOUT_SECONDS = 5.0
+# Inside the 5 s chat budget; on timeout the answer falls back to catalogue/document data.
+INVENTORY_TIMEOUT_SECONDS = 2.5
 
 _UNIT_TYPE_PATTERN = re.compile(
     r"\b("

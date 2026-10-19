@@ -556,7 +556,7 @@ def test_sends_project_id_and_auth_header(mock_get):
     _, kwargs = mock_get.call_args
     assert kwargs["params"] == {"project_id": "ocean-park-3"}
     assert kwargs["headers"]["Authorization"] == "Bearer secret-token"
-    assert kwargs["timeout"] == 5.0
+    assert kwargs["timeout"] == inventory_service.INVENTORY_TIMEOUT_SECONDS
 
 
 @patch("httpx.get")

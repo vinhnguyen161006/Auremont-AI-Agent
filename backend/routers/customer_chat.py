@@ -117,7 +117,7 @@ def _resolve_customer_asker(
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register_customer(
+def register_customer(
     payload: CustomerRegisterRequest,
     db: Session = Depends(get_db),
     _: None = Depends(anonymous_rate_limit),
@@ -165,7 +165,7 @@ async def register_customer(
 
 
 @router.post("/sessions/anonymous", response_model=AnonymousSessionResponse, status_code=status.HTTP_201_CREATED)
-async def create_anonymous_chat_session(
+def create_anonymous_chat_session(
     db: Session = Depends(get_db),
     _: None = Depends(anonymous_rate_limit),
 ) -> AnonymousSessionResponse:
@@ -177,7 +177,7 @@ async def create_anonymous_chat_session(
 
 
 @router.post("/sessions", response_model=CustomerChatSessionResponse, status_code=status.HTTP_201_CREATED)
-async def create_customer_chat_session(
+def create_customer_chat_session(
     payload: CustomerChatSessionCreate,
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.CUSTOMER)),
@@ -189,7 +189,7 @@ async def create_customer_chat_session(
     "/sessions/claim-anonymous",
     response_model=CustomerChatSessionResponse,
 )
-async def claim_anonymous_chat_session(
+def claim_anonymous_chat_session(
     payload: AnonymousSessionClaimRequest,
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.CUSTOMER)),
@@ -214,14 +214,14 @@ async def claim_anonymous_chat_session(
 
 
 @router.get("/sessions", response_model=list[CustomerChatSessionResponse])
-async def list_customer_chat_sessions(
+def list_customer_chat_sessions(
     db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.CUSTOMER))
 ) -> list[ChatSession]:
     return list_sessions_for_customer(db, customer_id=user.id)
 
 
 @router.get("/sessions/live", response_model=CustomerChatSessionResponse | None)
-async def get_my_live_session(
+def get_my_live_session(
     db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.CUSTOMER))
 ) -> ChatSession | None:
     """The customer's live-Sale conversation, or null if they have never requested one.
@@ -233,7 +233,7 @@ async def get_my_live_session(
 
 
 @router.get("/sessions/{session_id}", response_model=CustomerChatSessionResponse)
-async def get_customer_chat_session(
+def get_customer_chat_session(
     session_id: int,
     db: Session = Depends(get_db),
     user: User | None = Depends(get_optional_current_user),
@@ -247,7 +247,7 @@ async def get_customer_chat_session(
 
 
 @router.get("/sessions/{session_id}/messages", response_model=list[MessageResponse])
-async def list_customer_session_messages(
+def list_customer_session_messages(
     session_id: int,
     db: Session = Depends(get_db),
     user: User | None = Depends(get_optional_current_user),
@@ -263,7 +263,7 @@ async def list_customer_session_messages(
     response_model=CustomerAskResponse | None,
     status_code=status.HTTP_201_CREATED,
 )
-async def ask_in_customer_session(
+def ask_in_customer_session(
     session_id: int,
     payload: CustomerAskRequest,
     db: Session = Depends(get_db),
@@ -300,9 +300,11 @@ async def ask_in_customer_session(
     if memory_key is not None:
         memory_service.remember(memory_key, payload.content, session.project_id, db=db)
 
-    lead_service.rescore_for_turn(db, session, payload.content)
+    # The rule score is computed now; any LLM soft-signal pass overlaps the answer below.
+    finish_lead_rescore = lead_service.start_rescore(db, session, payload.content)
 
     if session.status != SessionStatus.BOT_HANDLING:
+        finish_lead_rescore()
         log_event(
             "customer.query",
             session_id=session_id,
@@ -378,6 +380,8 @@ async def ask_in_customer_session(
             suggested_questions = result.suggested_questions
             images = result.images
 
+    finish_lead_rescore()
+
     log_event(
         "customer.query",
         session_id=session_id,
@@ -422,7 +426,7 @@ async def ask_in_customer_session(
     response_model=CustomerAskResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def request_human(
+def request_human(
     session_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.CUSTOMER)),
@@ -474,7 +478,7 @@ async def request_human(
     response_model=CustomerAskResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def return_to_ai(
+def return_to_ai(
     session_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.CUSTOMER)),
@@ -574,7 +578,7 @@ def _forget_customer_context(
 
 
 @router.delete("/sessions/{session_id}/messages", status_code=status.HTTP_204_NO_CONTENT)
-async def clear_customer_session_messages(
+def clear_customer_session_messages(
     session_id: int,
     db: Session = Depends(get_db),
     user: User | None = Depends(get_optional_current_user),
@@ -608,7 +612,7 @@ async def clear_customer_session_messages(
 
 
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_customer_session(
+def remove_customer_session(
     session_id: int, db: Session = Depends(get_db), user: User = Depends(require_role(UserRole.CUSTOMER))
 ) -> None:
     session = get_session(db, session_id)

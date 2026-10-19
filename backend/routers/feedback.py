@@ -42,7 +42,7 @@ def _owned_message(db: Session, message_id: int, user: User):
 
 
 @router.post("", response_model=FeedbackResponse, status_code=status.HTTP_201_CREATED)
-async def submit_feedback(
+def submit_feedback(
     payload: FeedbackCreate,
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN)),
@@ -60,7 +60,7 @@ async def submit_feedback(
 
 
 @router.get("/message/{message_id}", response_model=list[FeedbackResponse])
-async def get_feedback_for_message(
+def get_feedback_for_message(
     message_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(require_role(UserRole.SALE, UserRole.ADMIN)),
@@ -71,7 +71,7 @@ async def get_feedback_for_message(
 
 
 @router.get("/top-failed", response_model=list[FailedQuestion])
-async def get_top_failed_questions(
+def get_top_failed_questions(
     limit: int = 10,
     db: Session = Depends(get_db),
     _: User = Depends(require_role(UserRole.ADMIN)),

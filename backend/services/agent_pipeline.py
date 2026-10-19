@@ -41,6 +41,7 @@ from backend.ai.answer_cleanup import (
     drop_image_denials,
 )
 from backend.ai.citations import build_citations
+from backend.ai.guardrails import build_leak_fingerprints, leaks_instructions
 from backend.ai.intent import (
     is_catalog_overview_query,
     is_conversation_meta_query,
@@ -57,6 +58,7 @@ from backend.core.config import get_settings
 from backend.core.enums import DocumentVisibility, MessageEmotion, MessageSender
 from backend.core.gemini_client import generate_json
 from backend.models.project import Project
+from backend.repositories.project import all_projects
 from backend.services import (
     answer_images_service,
     cache_service,
@@ -110,6 +112,11 @@ LOW_CONFIDENCE_MESSAGE_PUBLIC = (
 RETRIEVAL_ERROR_MESSAGE = "Tạm thời không tra cứu được tài liệu, vui lòng thử lại sau."
 GENERATION_ERROR_MESSAGE = "Tạm thời không tạo được câu trả lời, vui lòng thử lại sau."
 PREFLIGHT_MESSAGES = {
+    "prompt_injection": (
+        "Mình chỉ hỗ trợ thông tin về các dự án bất động sản của Auremont và không thể thay đổi cách "
+        "mình hoạt động hay chia sẻ cấu hình nội bộ. Anh/chị muốn tìm hiểu dự án, giá, tiện ích hay "
+        "chính sách nào để mình hỗ trợ ạ?"
+    ),
     "illegal_request": (
         "Mình không thể hỗ trợ lách luật, trốn thuế hoặc làm giả hồ sơ. Mình có thể giúp "
         "anh/chị kiểm tra quy trình giao dịch và các giấy tờ cần chuẩn bị theo hướng hợp pháp."
@@ -132,6 +139,8 @@ PREFLIGHT_MESSAGES = {
         "Nếu anh/chị cân nhắc mua để ở hoặc mua đầu tư, mình có thể tiếp tục tư vấn theo ngân sách."
     ),
 }
+
+_LEAK_FINGERPRINTS = build_leak_fingerprints(prompts.SYSTEM_INSTRUCTION, prompts.SYSTEM_INSTRUCTION_PUBLIC)
 
 NOTICE_MESSAGES = frozenset(
     {
@@ -226,6 +235,9 @@ class PipelineState(TypedDict, total=False):
     floor_plan_towers_only: list[str] | None
     db: Session | None
     retry_count: int
+    started_at: float
+    attempt_started_at: float
+    attempt_seconds: float
     notice: str
     notice_emotion: MessageEmotion
     used_cache: bool
@@ -490,7 +502,7 @@ def _rag_project_scope_ids(db: Session | None, project_id: str | None) -> list[s
 
     try:
         ids = [project_id]
-        for project in db.query(Project).all():
+        for project in all_projects(db):
             info = (project.details or {}).get("project") or {}
             if info.get("parent_project_id") == project_id:
                 ids.append(project.id)
@@ -735,20 +747,25 @@ def _generate(state: PipelineState) -> dict[str, Any]:
     started = time.perf_counter()
 
     parsed: prompts.ConsultAnswer | prompts.SaleAnswer | None
+    settings = get_settings()
     try:
         if is_public:
             parsed = generate_json(
                 prompt,
                 prompts.ConsultAnswer,
                 system_instruction=prompts.SYSTEM_INSTRUCTION_PUBLIC,
-                model=get_settings().gemini_model_accurate,
+                model=settings.gemini_model_accurate,
+                low_latency=True,
+                timeout_seconds=settings.generate_timeout_seconds,
             )
         else:
             parsed = generate_json(
                 prompt,
                 prompts.SaleAnswer,
                 system_instruction=prompts.SYSTEM_INSTRUCTION,
-                model=get_settings().gemini_model_accurate,
+                model=settings.gemini_model_accurate,
+                low_latency=True,
+                timeout_seconds=settings.generate_timeout_seconds,
             )
     except Exception:
         logger.exception(
@@ -800,6 +817,14 @@ def _generate(state: PipelineState) -> dict[str, Any]:
         )
         return {"notice": GENERATION_ERROR_MESSAGE}
 
+    if leaks_instructions(answer, _LEAK_FINGERPRINTS):
+        logger.warning(
+            "Generated answer reproduced the system instructions; withheld.",
+            extra={"event": "guardrail.output.blocked", "project_id": state.get("project_id")},
+        )
+        tracing.step("guardrail.output", blocked=True, attempt=attempt)
+        return {"notice": PREFLIGHT_MESSAGES["prompt_injection"], "notice_emotion": MessageEmotion.RESPECTFUL}
+
     answer = drop_image_denials(answer, state.get("images") or [])
     answer = drop_false_image_confirmations(answer, state.get("images") or [])
     answer = correct_unit_count(answer, len(listings))
@@ -822,6 +847,7 @@ def _generate(state: PipelineState) -> dict[str, Any]:
         "listings": listings,
         "suggested_questions": suggested_questions,
         "images": [] if listings else state.get("images") or [],
+        "attempt_started_at": started,
     }
 
 
@@ -1041,6 +1067,7 @@ def _verify(state: PipelineState) -> dict[str, Any]:
             scope=state.get("reflection_scope"),
         )
 
+    attempt_started_at = state.get("attempt_started_at")
     return {
         "verifier_score": round(result.score, 4),
         "faithfulness": round(result.faithfulness, 4),
@@ -1049,6 +1076,7 @@ def _verify(state: PipelineState) -> dict[str, Any]:
         "failure_mode": result.failure_mode.value,
         "verifier_feedback": result.feedback,
         "next_action": result.next_action.value,
+        "attempt_seconds": time.perf_counter() - attempt_started_at if attempt_started_at is not None else 0.0,
     }
 
 
@@ -1172,11 +1200,28 @@ def _route_after_verify(state: PipelineState) -> str:
         return "low_confidence"
 
     if state.get("retry_count", 0) < MAX_GENERATE_RETRIES:
+        if not _retry_fits_budget(state):
+            tracing.step("route.after_verify", decision="decline", score=score, reason="latency_budget")
+            return "low_confidence"
         tracing.step("route.after_verify", decision="retry", score=score)
         return "retry"
 
     tracing.step("route.after_verify", decision="decline", score=score, reason="retries_exhausted")
     return "low_confidence"
+
+
+def _retry_fits_budget(state: PipelineState) -> bool:
+    """Whether another generate+verify round, timed like the last one, ends inside the budget.
+
+    A retry roughly doubles the answer time. Past the budget the asker is better served by
+    the honest "not enough information" notice now than by the same notice — or a still-
+    rejected draft — several seconds later.
+    """
+    started_at = state.get("started_at")
+    if started_at is None:
+        return True
+    elapsed = time.perf_counter() - started_at
+    return elapsed + state.get("attempt_seconds", 0.0) <= get_settings().chat_latency_budget_seconds
 
 
 def _bump_retry(state: PipelineState) -> dict[str, Any]:
@@ -1327,6 +1372,7 @@ def _run_traced(
         "verifier_score": 0.0,
         "requires_hitl": False,
         "retry_count": 0,
+        "started_at": time.perf_counter(),
         "used_cache": False,
         "images": [],
         "db": db,

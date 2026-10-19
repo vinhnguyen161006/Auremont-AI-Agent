@@ -4,12 +4,16 @@ Split from `lead_scoring_service` the same way `agent_pipeline` is split from
 `verifier_service` — the scoring maths stays a pure function that tests can drive directly,
 while everything that touches Redis, MySQL or Gemini lives here.
 
-`rescore_for_turn` never raises. A lead score is a nice-to-have ranking hint; a bug in it
+`start_rescore` and the callable it returns never raise. A lead score is a nice-to-have ranking hint; a bug in it
 must not turn a working customer answer into a 500, which is the same posture
 `memory_service` and `search_criteria.load` already take.
 """
 
+import contextvars
 import logging
+from collections.abc import Callable
+from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeoutError
 
 from sqlalchemy.orm import Session
 
@@ -28,26 +32,48 @@ from backend.services import search_criteria
 
 logger = logging.getLogger(__name__)
 
+# The soft-signal LLM call only reads strings handed to it, never the DB session, so it is
+# safe to run beside the request thread while the agent pipeline answers the customer.
+_LLM_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="lead-llm")
 
-def rescore_for_turn(db: Session, session: ChatSession, query: str) -> None:
-    """Re-score the person behind `session` after they said `query`.
+
+def _noop() -> None:
+    return None
+
+
+def start_rescore(db: Session, session: ChatSession, query: str) -> Callable[[], None]:
+    """Begin re-scoring the person behind `session`; the returned callable completes it.
+
+    The rule pass and every DB read happen now. The optional LLM pass runs on a worker
+    thread, so the caller can answer the customer meanwhile — the two waits overlap
+    instead of adding up. The completion callable joins it, persists the verdict, and
+    never raises.
 
     Called from the ONE place every customer turn passes through, before any of the
     router's early returns — see `customer_chat.ask_in_customer_session`.
     """
     settings = get_settings()
     if not settings.lead_scoring_enabled:
-        return
+        return _noop
     try:
-        _rescore(db, session, query, settings)
+        finish = _rescore(db, session, query, settings)
     except Exception:
         logger.warning("Lead scoring failed for session %s; leaving the previous tier.", session.id, exc_info=True)
+        return _noop
+
+    def _safe_finish() -> None:
+        try:
+            finish()
+        except Exception:
+            logger.warning("Lead scoring failed for session %s; leaving the previous tier.", session.id, exc_info=True)
+
+    return _safe_finish
 
 
-def _rescore(db: Session, session: ChatSession, query: str, settings) -> None:
+def _rescore(db: Session, session: ChatSession, query: str, settings) -> Callable[[], None]:
     lead = get_or_create_lead(db, customer_id=session.customer_id, visitor_token=session.visitor_token)
     if lead is None:
-        return
+        return _noop
 
     criteria = _criteria_for(session.id, query)
     turn_count = _customer_turn_count(db, session.id)
@@ -63,7 +89,7 @@ def _rescore(db: Session, session: ChatSession, query: str, settings) -> None:
     )
     rule_score = scoring.score_rules(signals)
 
-    soft = None
+    soft_future: Future | None = None
     if settings.lead_scoring_llm_enabled and scoring.should_enrich(
         rule_score,
         signals,
@@ -72,29 +98,44 @@ def _rescore(db: Session, session: ChatSession, query: str, settings) -> None:
         warm_threshold=settings.lead_warm_threshold,
         min_turns=settings.lead_llm_min_turns,
     ):
-        soft = scoring.enrich_with_llm(_recent_customer_turns(db, session.id, settings.lead_llm_max_history_turns))
+        turns = _recent_customer_turns(db, session.id, settings.lead_llm_max_history_turns)
+        # copy_context keeps the request's trace run, so token usage still lands on it.
+        soft_future = _LLM_POOL.submit(contextvars.copy_context().run, scoring.enrich_with_llm, turns)
 
-    verdict = scoring.combine(
-        rule_score,
-        signals,
-        soft,
-        hot_threshold=settings.lead_hot_threshold,
-        warm_threshold=settings.lead_warm_threshold,
-    )
-    update_lead_score(
-        db, lead, verdict, turn_count=turn_count, project_id=session.project_id, llm_scored=soft is not None
-    )
+    def finish() -> None:
+        soft = None
+        if soft_future is not None:
+            try:
+                soft = soft_future.result(timeout=settings.lead_scoring_timeout_seconds + 1.0)
+            except FutureTimeoutError:
+                soft_future.cancel()  # a still-queued call must not burn quota for nobody
+                logger.warning("Lead soft-signal pass timed out; keeping the rule score.")
+            except Exception:
+                logger.warning("Lead soft-signal pass failed; keeping the rule score.", exc_info=True)
 
-    tracing.step("lead.score", tier=verdict.tier, rule_score=rule_score, llm_called=soft is not None)
-    log_event(
-        "lead.scored",
-        lead_id=lead.id,
-        session_id=session.id,
-        tier=verdict.tier,
-        score=verdict.score,
-        detection_method=verdict.detection_method,
-        is_anonymous=session.customer_id is None,
-    )
+        verdict = scoring.combine(
+            rule_score,
+            signals,
+            soft,
+            hot_threshold=settings.lead_hot_threshold,
+            warm_threshold=settings.lead_warm_threshold,
+        )
+        update_lead_score(
+            db, lead, verdict, turn_count=turn_count, project_id=session.project_id, llm_scored=soft is not None
+        )
+
+        tracing.step("lead.score", tier=verdict.tier, rule_score=rule_score, llm_called=soft is not None)
+        log_event(
+            "lead.scored",
+            lead_id=lead.id,
+            session_id=session.id,
+            tier=verdict.tier,
+            score=verdict.score,
+            detection_method=verdict.detection_method,
+            is_anonymous=session.customer_id is None,
+        )
+
+    return finish
 
 
 def rescore_after_claim(db: Session, lead, user) -> None:
@@ -104,7 +145,7 @@ def rescore_after_claim(db: Session, lead, user) -> None:
     anything new, so nothing else would trigger a rescore until their next message. Rules
     only: no sentence was said, so there is nothing for the LLM to read.
 
-    Never raises, for the same reason `rescore_for_turn` does not: this runs inside the
+    Never raises, for the same reason `start_rescore` does not: this runs inside the
     registration request, and a ranking hint must not be able to fail a signup.
     """
     if lead is None or not get_settings().lead_scoring_enabled:

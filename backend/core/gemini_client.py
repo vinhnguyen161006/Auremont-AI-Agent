@@ -17,6 +17,10 @@ logger = logging.getLogger(__name__)
 
 _EMBED_MAX_ATTEMPTS = 4
 _EMBED_RETRY_STATUS_CODES = {429}
+# A query embedding sits on the live chat path: one quick retry, never the multi-second
+# quota backoff ingestion can afford.
+_QUERY_EMBED_MAX_ATTEMPTS = 2
+_QUERY_EMBED_MAX_RETRY_DELAY_SECONDS = 0.5
 
 _GENERATE_MAX_ATTEMPTS = 2
 _GENERATE_RETRY_STATUS_CODES = {429, 500, 502, 503, 504}
@@ -58,8 +62,36 @@ def is_gemini_quota_error(exc: BaseException) -> bool:
 def get_gemini_client() -> genai.Client:
     global _client
     if _client is None:
-        _client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        # Without a client-wide timeout a stalled connection holds a chat request open
+        # indefinitely; per-call `timeout_seconds` tightens this further on the live path.
+        _client = genai.Client(
+            api_key=settings.GEMINI_API_KEY,
+            http_options=types.HttpOptions(timeout=int(settings.gemini_request_timeout_seconds * 1000)),
+        )
     return _client
+
+
+def low_latency_thinking(model: str) -> types.ThinkingConfig | None:
+    """The smallest reasoning budget `model` accepts, for calls a person is waiting on.
+
+    Gemini 2.5 Flash thinks dynamically by default, which alone can add several seconds to
+    an answer that is grounded in supplied context and needs no multi-step reasoning.
+    2.5 Pro cannot go below 128 tokens; Gemini 3 takes a level instead of a budget, and
+    its Pro tier has no MINIMAL level.
+    """
+    if not settings.gemini_low_latency_thinking:
+        return None
+    name = model.lower()
+    if name.startswith("gemini-2.5"):
+        return types.ThinkingConfig(thinking_budget=128 if "pro" in name else 0)
+    if name.startswith("gemini-3"):
+        level = types.ThinkingLevel.LOW if "pro" in name else types.ThinkingLevel.MINIMAL
+        return types.ThinkingConfig(thinking_level=level)
+    return None
+
+
+def _request_options(timeout_seconds: float | None) -> types.HttpOptions | None:
+    return types.HttpOptions(timeout=int(timeout_seconds * 1000)) if timeout_seconds else None
 
 
 def generate_text(
@@ -86,6 +118,8 @@ def generate_json(
     *,
     temperature: float | None = None,
     model: str | None = None,
+    low_latency: bool = False,
+    timeout_seconds: float | None = None,
 ) -> ModelT | None:
     """Generate a response constrained to `schema`, returning a parsed model instance.
 
@@ -93,17 +127,24 @@ def generate_json(
     and parsing whatever comes back. Critical AI decisions (verification scores, risk
     classification) must not depend on a regex finding a brace in prose.
 
+    `low_latency` trims the model's reasoning budget for calls on the live chat path
+    (answer, verifier, lead scoring); background judgement keeps the model default.
+    `timeout_seconds` caps this one request below the client-wide timeout.
+
     Returns None when the model returns nothing parseable; callers decide what a missing
     judgement means, and for verification it means fail closed.
     """
+    resolved_model = model or settings.gemini_model_fast
     config = types.GenerateContentConfig(
         system_instruction=system_instruction,
         response_mime_type="application/json",
         response_schema=_serving_safe_schema(schema),
         temperature=temperature,
+        thinking_config=low_latency_thinking(resolved_model) if low_latency else None,
+        http_options=_request_options(timeout_seconds),
     )
 
-    response = client_models_generate(prompt, config, model=model)
+    response = client_models_generate(prompt, config, model=resolved_model)
     parsed = getattr(response, "parsed", None)
     if isinstance(parsed, schema):
         return parsed
@@ -278,6 +319,8 @@ def embed_query(query: str) -> list[float]:
         [query],
         task_type="RETRIEVAL_QUERY",
         title=None,
+        max_attempts=_QUERY_EMBED_MAX_ATTEMPTS,
+        max_retry_delay=_QUERY_EMBED_MAX_RETRY_DELAY_SECONDS,
     )[0]
 
     with _query_embed_lock:
@@ -300,6 +343,8 @@ def _embed(
     *,
     task_type: str,
     title: str | None,
+    max_attempts: int = _EMBED_MAX_ATTEMPTS,
+    max_retry_delay: float | None = None,
 ) -> list[list[float]]:
     if not texts:
         return []
@@ -313,7 +358,7 @@ def _embed(
         config_kwargs["title"] = title
 
     response = None
-    for attempt in range(1, _EMBED_MAX_ATTEMPTS + 1):
+    for attempt in range(1, max_attempts + 1):
         try:
             response = get_gemini_client().models.embed_content(
                 model=settings.embedding_model,
@@ -322,7 +367,7 @@ def _embed(
             )
             break
         except genai_errors.APIError as exc:
-            is_last_attempt = attempt == _EMBED_MAX_ATTEMPTS
+            is_last_attempt = attempt == max_attempts
             if exc.code not in _EMBED_RETRY_STATUS_CODES or is_last_attempt:
                 logger.exception(
                     "Gemini embedding call failed.",
@@ -337,6 +382,8 @@ def _embed(
                 raise GeminiEmbeddingError("Gemini embedding request failed.") from exc
 
             delay = retry_delay_seconds(exc)
+            if max_retry_delay is not None:
+                delay = min(delay, max_retry_delay)
             logger.warning(
                 "Gemini embedding rate-limited; retrying.",
                 extra={

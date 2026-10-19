@@ -24,7 +24,7 @@ class RefreshRequest(BaseModel):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> TokenResponse:
+def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> TokenResponse:
     """Internal Sale/Admin login — the role inside the token drives frontend routing."""
     user = get_user_by_username(db, form.username)
 
@@ -48,7 +48,7 @@ async def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depen
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> TokenResponse:
+def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> TokenResponse:
     """Exchange a refresh token for a new access token.
 
     Access tokens live only a few dozen minutes; without this endpoint a Sale in the
@@ -86,7 +86,7 @@ async def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> Tok
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(user: User = Depends(get_current_user)) -> None:
+def logout(user: User = Depends(get_current_user)) -> None:
     """Log out.
 
     JWTs are stateless, so the token stays valid until it expires — the client must

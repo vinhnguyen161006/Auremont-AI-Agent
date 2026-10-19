@@ -375,7 +375,7 @@ def _fallback_alerts(db: Session, cutoff: datetime) -> list[FallbackAlertRespons
 
 
 @router.get("", response_model=ObservabilityOverviewResponse)
-async def get_observability_overview(
+def get_observability_overview(
     days: int = Query(default=14, ge=7, le=30),
     severity: str | None = Query(default=None, pattern="^(INFO|WARN|ERROR)$"),
     module: str | None = None,
@@ -438,7 +438,7 @@ async def get_observability_overview(
 
 
 @router.get("/traces/{run_id}", response_model=TraceSummaryResponse)
-async def get_trace(run_id: str, db: Session = Depends(get_db)) -> TraceSummaryResponse:
+def get_trace(run_id: str, db: Session = Depends(get_db)) -> TraceSummaryResponse:
     stored = db.query(PipelineTraceRun).filter(PipelineTraceRun.run_id == run_id).first()
     if stored is not None and isinstance(stored.payload, dict):
         trace = _to_trace(stored.payload)

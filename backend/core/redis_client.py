@@ -15,7 +15,9 @@ def get_redis_client() -> redis.Redis | None:
 
     `decode_responses=True` so callers get `str` back rather than `bytes`; the short
     timeouts keep a hung Redis from stalling a chat response, since a profile is a
-    nice-to-have and never worth making the Sale wait for.
+    nice-to-have and never worth making the Sale wait for. One chat turn makes about
+    five Redis calls, so at 2 s each an unreachable Redis alone blew the 5 s budget;
+    a healthy Redis answers in milliseconds, so half a second is still generous.
     """
     settings = get_settings()
     if not settings.redis_url:
@@ -24,6 +26,6 @@ def get_redis_client() -> redis.Redis | None:
     return redis.Redis.from_url(
         settings.redis_url,
         decode_responses=True,
-        socket_connect_timeout=2,
-        socket_timeout=2,
+        socket_connect_timeout=0.5,
+        socket_timeout=0.5,
     )

@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from backend.models.project import Project
+from backend.repositories.project import all_projects
 from backend.utils.text import strip_diacritics
 
 _PROFILE_TERMS = (
@@ -316,7 +317,7 @@ def _candidate_projects(db: Session, project_id: str | None) -> list[Project]:
     if project_id:
         project = db.get(Project, project_id)
         return [project] if project is not None else []
-    return db.query(Project).all()
+    return all_projects(db)
 
 
 def _known_towers(details: dict) -> list[str]:

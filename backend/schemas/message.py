@@ -1,8 +1,30 @@
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel
+from pydantic import AfterValidator, BaseModel
 
+from backend.ai.guardrails import normalize_user_input
+from backend.core.config import get_settings
 from backend.core.enums import MessageEmotion, MessageSender
+
+
+def _clean_chat_text(value: str) -> str:
+    """Normalise a typed chat message and bound its length at the API boundary.
+
+    Unbounded input is both a cost problem (every character is billed to the model, twice
+    with the Verifier) and an attack surface (long payloads bury instructions far from the
+    question). Read from settings at call time so tests and deployments can tune it.
+    """
+    cleaned = normalize_user_input(value)
+    if not cleaned:
+        raise ValueError("Nội dung tin nhắn không được để trống.")
+    limit = get_settings().chat_max_query_chars
+    if len(cleaned) > limit:
+        raise ValueError(f"Tin nhắn quá dài (tối đa {limit} ký tự).")
+    return cleaned
+
+
+ChatText = Annotated[str, AfterValidator(_clean_chat_text)]
 
 
 class Citation(BaseModel):

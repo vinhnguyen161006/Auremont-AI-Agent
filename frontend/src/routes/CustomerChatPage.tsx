@@ -15,7 +15,6 @@ import { RegisterGateModal } from "../components/RegisterGateModal";
 import { AnswerImageStrip } from "./sale/AnswerImageStrip";
 import { PropertyListingCarousel } from "./PropertyListingCarousel";
 import { AuremontAvatar } from "../components/AuremontAvatar";
-import { useCursorTrail } from "../hooks/useCursorTrail";
 import { MessageContent } from "../components/MessageContent";
 import { parseServerDate } from "../utils/datetime";
 import {
@@ -329,7 +328,6 @@ export function CustomerChatPage({ mode = "ai" }: { mode?: CustomerChatMode } = 
   // and no-ops when a handoff is already under way. Anonymous visitors are excluded: the
   // endpoint is CUSTOMER-only, they get the register gate below instead.
   const autoRequestedRef = useRef(false);
-  const { layerRef: particleLayerRef, handleMouseMove: handleChatMouseMove } = useCursorTrail();
   useEffect(() => {
     if (!isHumanMode || historyLoading) return;
     // An anonymous visitor cannot be handed to a Sale at all (the endpoint is CUSTOMER-only),
@@ -436,11 +434,7 @@ export function CustomerChatPage({ mode = "ai" }: { mode?: CustomerChatMode } = 
   const visitor = getVisitorSession();
 
   return (
-    <div
-      className="chat-page chat-page--standalone"
-      onMouseMove={handleChatMouseMove}
-    >
-      <div className="cursor-particle-layer" ref={particleLayerRef} aria-hidden="true" />
+    <div className="chat-page chat-page--standalone">
       <header className="chat-topbar">
         <div className="chat-topbar-info">
           <div className="chat-topbar-icon">
@@ -691,6 +685,7 @@ export function CustomerChatPage({ mode = "ai" }: { mode?: CustomerChatMode } = 
               ref={textareaRef}
               className="chat-input"
               placeholder="Nhập câu hỏi của bạn..."
+              maxLength={2000}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}

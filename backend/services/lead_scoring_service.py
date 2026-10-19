@@ -345,6 +345,8 @@ def enrich_with_llm(customer_turns: list[str]) -> LeadSoftSignals | None:
             LeadSoftSignals,
             system_instruction=_SYSTEM_INSTRUCTION,
             model=settings.gemini_model_fast,
+            low_latency=True,
+            timeout_seconds=settings.lead_scoring_timeout_seconds,
         )
     except Exception:
         logger.warning("Lead soft-signal pass failed; keeping the rule score.", exc_info=True)

@@ -435,7 +435,7 @@ async def upload_document(
     response_model=IngestResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def ingest_document(
+def ingest_document(
     payload: IngestRequest,
     db: Session = Depends(get_db),
     admin: User = Depends(require_role(UserRole.ADMIN)),
@@ -469,7 +469,7 @@ async def ingest_document(
 
 
 @router.post("/{document_id}/reindex", response_model=IngestResponse)
-async def reindex_document_endpoint(
+def reindex_document_endpoint(
     document_id: int,
     db: Session = Depends(get_db),
     admin: User = Depends(require_role(UserRole.ADMIN)),
@@ -518,7 +518,7 @@ async def reindex_document_endpoint(
 
 
 @router.post("/{document_id}/reclassify", response_model=DocumentResponse)
-async def reclassify_document_endpoint(
+def reclassify_document_endpoint(
     document_id: int,
     payload: ReclassifyRequest,
     db: Session = Depends(get_db),
@@ -584,7 +584,7 @@ async def reclassify_document_endpoint(
 
 
 @router.get("", response_model=list[DocumentResponse])
-async def get_documents(
+def get_documents(
     coverage_scope: str | None = Query(default=None, min_length=1),
     db: Session = Depends(get_db),
 ) -> list[Document]:
@@ -603,7 +603,7 @@ async def get_documents(
 
 
 @router.get("/{document_id}/view-url")
-async def get_document_view_url(
+def get_document_view_url(
     document_id: int,
     db: Session = Depends(get_db),
 ) -> dict:
@@ -624,7 +624,7 @@ async def get_document_view_url(
     "/{document_id}/visibility",
     response_model=DocumentResponse,
 )
-async def set_document_visibility(
+def set_document_visibility(
     document_id: int,
     payload: VisibilityUpdateRequest,
     db: Session = Depends(get_db),
@@ -716,7 +716,7 @@ async def set_document_visibility(
     "/{document_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def remove_document(
+def remove_document(
     document_id: int,
     db: Session = Depends(get_db),
 ) -> None:
@@ -757,7 +757,7 @@ async def remove_document(
     "/metadata-editable",
     response_model=list[DocumentResponse],
 )
-async def get_documents_for_metadata_edit(
+def get_documents_for_metadata_edit(
     db: Session = Depends(get_db),
 ) -> list[Document]:
     """Ingested documents whose metadata an Admin can still correct.
@@ -773,7 +773,7 @@ async def get_documents_for_metadata_edit(
     "/{document_id}/classification",
     response_model=DocumentResponse,
 )
-async def update_document_metadata(
+def update_document_metadata(
     document_id: int,
     payload: DocumentClassificationUpdate,
     db: Session = Depends(get_db),

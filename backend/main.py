@@ -1,4 +1,6 @@
+import contextlib
 import logging
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -14,6 +16,7 @@ from backend.core.config import get_settings
 from backend.core.health import check_readiness
 from backend.core.logging_config import setup_logging
 from backend.core.seed import seed_projects, seed_users
+from backend.core.sparse_embedding import SparseEmbeddingError, embed_query_sparse
 from backend.middleware.logging import RequestContextMiddleware
 from backend.middleware.metrics import PrometheusMiddleware
 from backend.models import billing as billing_models  # noqa: F401
@@ -56,6 +59,17 @@ from backend.routers import (
 )
 
 
+def _warm_sparse_model() -> None:
+    """Load the BM25 model before the first chat question needs it.
+
+    `get_sparse_model` is lazy on purpose so an unreachable model repository never blocks
+    startup; running it on a background thread keeps that, while sparing the first visitor
+    after every deploy or restart the multi-second model load inside their answer.
+    """
+    with contextlib.suppress(SparseEmbeddingError):  # already logged; the first query retries
+        embed_query_sparse("khởi động")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
@@ -68,6 +82,8 @@ async def lifespan(app: FastAPI):
     seed_users()
     seed_projects()
     load_demo_data()
+    if settings.hybrid_search_enabled:
+        threading.Thread(target=_warm_sparse_model, name="bm25-warmup", daemon=True).start()
     yield
     logger.info("Dang tat ung dung.", extra={"event": "app.shutdown"})
 

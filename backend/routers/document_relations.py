@@ -36,7 +36,7 @@ router = APIRouter(
 
 
 @router.get("", response_model=list[DocumentRelationResponse])
-async def get_document_relations(
+def get_document_relations(
     pending_only: bool = False,
     db: Session = Depends(get_db),
 ) -> list[DocumentRelation]:
@@ -44,7 +44,7 @@ async def get_document_relations(
 
 
 @router.post("", response_model=DocumentRelationResponse, status_code=status.HTTP_201_CREATED)
-async def add_document_relation(
+def add_document_relation(
     payload: DocumentRelationCreate,
     db: Session = Depends(get_db),
 ) -> DocumentRelationResponse:
@@ -55,7 +55,7 @@ async def add_document_relation(
 
 
 @router.post("/{relation_id}/review", response_model=DocumentRelationResponse)
-async def review_relation(
+def review_relation(
     relation_id: int,
     payload: DocumentRelationReview,
     db: Session = Depends(get_db),

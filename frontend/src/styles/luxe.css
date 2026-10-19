@@ -1,0 +1,744 @@
+/* ══════════════════════════════════════════════════════════
+   AUREMONT LUXE LAYER
+   Loaded after design-system.css / salesmate.css. Only refines what the base
+   sheets already render — typography, surfaces, motion and focus — so every
+   component keeps its markup and behaviour. Colour comes from the tokens in
+   design-system.css; nothing here introduces a new hue.
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Base ─────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern", "liga";
+}
+
+/* Fine film grain — breaks the flatness of large ivory/ink fields without an image request. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: rgba(var(--accent-rgb), 0.85);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 3px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--accent-rgb), 0.35) transparent;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Prices, areas, counts and scores line up in columns. */
+.business-pricing-price,
+.project-card-price,
+.admin-metric-value,
+.business-kpi strong,
+.chat-timestamp {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ── Editorial headlines ──────────────────────────────────── */
+.hero-title,
+.home-section-title,
+.home-intro-title,
+.home-cta-title,
+.business-pricing-title,
+.login-title,
+.chat-empty-title,
+.empty-state-title,
+.page-title,
+.project-card-title,
+.home-map-title,
+.topnav-brand,
+.site-footer-logo {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.home-section-title,
+.business-pricing-title,
+.home-cta-title {
+  font-size: clamp(2.1rem, 4vw, 3.1rem);
+  line-height: 1.08;
+}
+
+.home-intro-title {
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  line-height: 1.1;
+  color: var(--text-1);
+  padding-left: 0;
+  border-left: none;
+  margin-bottom: 22px;
+}
+
+/* A short gold rule replaces the old coloured side bar. */
+.home-intro-title::before {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 1px;
+  margin-bottom: 18px;
+  background: var(--accent);
+}
+
+.page-title {
+  font-size: clamp(1.9rem, 3vw, 2.4rem);
+  line-height: 1.1;
+}
+
+.project-card-title {
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.section-eyebrow,
+.business-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.section-eyebrow::before {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.section-subtitle,
+.home-intro-desc,
+.business-pricing-subtitle {
+  max-width: 62ch;
+  font-weight: 300;
+  line-height: 1.75;
+  color: var(--text-2);
+}
+
+/* The CTA band is ink in both themes, so its copy keeps light-on-dark colours. */
+.home-cta-desc {
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.home-cta .section-eyebrow {
+  color: var(--accent-light);
+}
+
+/* One accent: every feature icon takes the gold treatment. */
+.fi-accent-2,
+.fi-teal,
+.fi-sage,
+.fi-emerald {
+  --icon-grad: linear-gradient(135deg, var(--accent), var(--accent-2));
+  --icon-border: rgba(var(--accent-rgb), 0.25);
+  color: var(--accent);
+}
+
+/* The logo PNG ships in the old brand blue; rotate it onto the gold palette until a
+   gold master exists. shortcut: CSS tint of a raster logo, replace with a gold asset. */
+img[src$="/logo.png"] {
+  filter: hue-rotate(178deg) saturate(0.55) brightness(1.05);
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn {
+  padding: 12px 24px;
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition:
+    transform var(--t-fast),
+    box-shadow var(--t-base),
+    background var(--t-base),
+    border-color var(--t-base),
+    color var(--t-base);
+}
+
+.btn-sm {
+  padding: 7px 16px;
+}
+
+.btn-primary,
+.btn-gold {
+  background: var(--grad-primary);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 10px 24px -12px rgba(var(--accent-rgb), 0.75);
+}
+
+.btn-primary:hover,
+.btn-gold:hover {
+  background: var(--grad-primary);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 16px 32px -14px rgba(var(--accent-rgb), 0.85);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-h);
+  color: var(--text-1);
+}
+
+.btn-outline:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-softer);
+}
+
+/* ── Top navigation ───────────────────────────────────────── */
+.topnav {
+  background: color-mix(in srgb, var(--bg-2) 84%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+}
+
+.topnav--overlay {
+  /* Strong enough to keep the menu legible over busy banner art (zone maps, renders). */
+  background: linear-gradient(180deg, rgba(var(--ink-rgb), 0.78), rgba(var(--ink-rgb), 0));
+  border-bottom-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.topnav--overlay:hover,
+.topnav--overlay:focus-within {
+  background: rgba(var(--ink-rgb), 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.topnav-brand {
+  font-size: 1.4rem;
+  letter-spacing: 0.02em;
+}
+
+.topnav-link {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  transition: color var(--t-fast);
+}
+
+.topnav-link--active {
+  background: transparent;
+  color: var(--accent);
+}
+
+.topnav--overlay .topnav-link--active {
+  color: var(--accent-light);
+}
+
+/* ── Hero ─────────────────────────────────────────────────── */
+.home-hero .hero-media {
+  background-image:
+    linear-gradient(100deg, rgba(var(--ink-rgb), 0.82) 0%, rgba(var(--ink-rgb), 0.45) 45%, rgba(var(--ink-rgb), 0.15) 100%),
+    linear-gradient(0deg, rgba(var(--ink-rgb), 0.55) 0%, transparent 40%),
+    var(--hero-image-url, none),
+    linear-gradient(135deg, #1f1b15 0%, #16130f 60%, #0b0a08 100%);
+  background-size: cover;
+  background-position: center;
+  animation: luxe-hero-zoom 18s var(--ease) both;
+}
+
+@keyframes luxe-hero-zoom {
+  from {
+    transform: scale(1.06);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+.home-hero .hero-grid {
+  display: none;
+}
+
+.home-compact .home-hero {
+  min-height: 100dvh;
+  align-items: flex-end;
+  padding: 160px 0 clamp(56px, 9vh, 104px);
+}
+
+.home-compact .hero-title {
+  font-size: clamp(3rem, 7vw, 6rem);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+}
+
+.home-hero .hero-title,
+.home-hero .hero-subtitle {
+  text-shadow: none;
+}
+
+.home-hero .hero-subtitle {
+  font-weight: 300;
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 56ch;
+}
+
+.home-hero .home-action-grid .hero-nav-card {
+  padding: 18px 20px;
+  border-radius: var(--radius);
+  background: rgba(var(--ink-rgb), 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+.home-hero .home-action-grid .hero-nav-card:hover {
+  border-color: rgba(var(--accent-light-rgb), 0.7);
+  background: rgba(var(--ink-rgb), 0.5);
+  transform: translateY(-3px);
+  box-shadow: 0 24px 40px -24px rgba(0, 0, 0, 0.8);
+}
+
+.home-hero .home-action-grid .hero-nav-card--primary {
+  border-color: rgba(var(--accent-light-rgb), 0.55);
+}
+
+.home-hero .hero-nav-card-title {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.home-hero .hero-nav-card-desc {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.home-hero .hero-nav-card-icon {
+  border-radius: var(--radius-sm);
+  background: rgba(var(--accent-light-rgb), 0.14);
+  border-color: rgba(var(--accent-light-rgb), 0.35);
+  color: var(--accent-light);
+}
+
+.home-hero .hero-nav-card-arrow {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.home-hero .hero-nav-card:hover .hero-nav-card-arrow {
+  color: var(--accent-light);
+}
+
+/* ── Cards & panels ───────────────────────────────────────── */
+.project-card,
+.business-pricing-plan,
+.home-feature-panel,
+.login-card,
+.admin-metric {
+  border-radius: var(--radius-lg);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.project-card {
+  transition:
+    transform var(--t-base),
+    box-shadow var(--t-base),
+    border-color var(--t-base);
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(var(--accent-rgb), 0.45);
+  box-shadow: var(--shadow);
+}
+
+.project-card-media,
+.project-card-image {
+  transition: transform var(--t-slow);
+}
+
+.project-card:hover .project-card-media,
+.project-card:hover .project-card-image {
+  transform: scale(1.04);
+}
+
+.project-card-price {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.business-pricing-plan--featured {
+  border-color: rgba(var(--accent-rgb), 0.55);
+  box-shadow:
+    0 0 0 1px rgba(var(--accent-rgb), 0.25),
+    var(--shadow);
+}
+
+.home-stat-pill {
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.02em;
+}
+
+/* ── Chat ─────────────────────────────────────────────────── */
+.chat-bubble {
+  border-radius: var(--radius-lg);
+  line-height: 1.7;
+}
+
+.chat-bubble--bot {
+  background: var(--bg-2);
+  border-color: var(--border);
+  border-bottom-left-radius: var(--radius-xs);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-bubble--user {
+  border: 1px solid rgba(var(--accent-light-rgb), 0.28);
+  border-bottom-right-radius: var(--radius-xs);
+  box-shadow: 0 12px 24px -16px rgba(var(--ink-rgb), 0.6);
+}
+
+.chat-input-box {
+  border-radius: var(--radius-lg);
+  transition:
+    border-color var(--t-base),
+    box-shadow var(--t-base);
+}
+
+.chat-input-box--active,
+.chat-input-box:focus-within {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1);
+}
+
+.chat-send-btn--ready {
+  box-shadow: 0 10px 22px -12px rgba(var(--accent-rgb), 0.9);
+}
+
+.chat-suggested-question,
+.chat-quick-reply,
+.chat-widget-suggestion {
+  border-radius: 999px;
+  transition:
+    border-color var(--t-fast),
+    color var(--t-fast),
+    background var(--t-fast);
+}
+
+.chat-suggested-question:hover,
+.chat-quick-reply:hover,
+.chat-widget-suggestion:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chat-widget-panel {
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 40px 80px -32px rgba(var(--ink-rgb), 0.55),
+    0 0 0 1px var(--border);
+}
+
+/* ── Login / register ─────────────────────────────────────── */
+.login-card {
+  padding: 44px 40px;
+  box-shadow: var(--shadow);
+}
+
+.login-input {
+  border-radius: var(--radius-sm);
+  transition:
+    border-color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+
+.login-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1);
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.site-footer {
+  position: relative;
+  border-top: none;
+}
+
+.site-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.6), transparent);
+}
+
+.site-footer-logo {
+  font-size: 1.5rem;
+}
+
+.home-map-title {
+  font-size: clamp(1.15rem, 2.4vw, 1.6rem);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  padding-inline: 16px;
+}
+
+/* ── Dropdowns (catalogue + grouped admin menu) ───────────── */
+.topnav-dropdown {
+  padding: 6px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.topnav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
+}
+
+.topnav-dropdown-item svg {
+  flex-shrink: 0;
+  color: var(--text-3);
+}
+
+.topnav-dropdown-item:hover svg,
+.topnav-dropdown-item.active svg {
+  color: var(--accent);
+}
+
+.topnav-dropdown-item.active {
+  color: var(--accent);
+  background: var(--accent-softer);
+}
+
+/* ── Catalogue pages: one editorial heading voice ─────────── */
+/* The base sheets set these as uppercase 800-weight sans in gold, a different voice on
+   every section; luxury catalogues set section names in the display serif instead. */
+.intro-title,
+.section-title,
+.pricing-card-title,
+.price-table-brown-title,
+.floor-plan-tabs-title,
+.zone-spotlight-title,
+.villa-map-banner-title,
+.location-map-title,
+.amenity-banner-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -0.005em;
+  line-height: 1.15;
+}
+
+.intro-title,
+.pricing-card-title,
+.price-table-brown-title,
+.floor-plan-tabs-title,
+.zone-spotlight-title,
+.villa-map-banner-title,
+.location-map-title {
+  font-size: clamp(1.7rem, 2.6vw, 2.3rem);
+  color: var(--text-1);
+}
+
+.section-title {
+  font-size: clamp(1.5rem, 2.2vw, 1.9rem);
+}
+
+.amenity-banner-title {
+  font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+}
+
+/* Amenity showcases sit on ink rather than a flat mid-brown slab, like the news hero. */
+.amenity-banner {
+  background:
+    radial-gradient(circle at 85% 0%, rgba(var(--accent-rgb), 0.2), transparent 45%),
+    linear-gradient(160deg, #1d1914 0%, #13100c 100%);
+  border: 1px solid rgba(var(--accent-light-rgb), 0.16);
+  border-radius: var(--radius-lg);
+}
+
+.amenity-banner-text {
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.amenity-banner-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.amenity-banner-card p {
+  color: #efe7d9;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.zone-spotlight-title--light {
+  color: #fff;
+}
+
+.zone-spotlight-subtitle {
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+/* The coloured side bar becomes the same short gold rule used on the home page. */
+.intro-title {
+  display: block;
+}
+
+.intro-title-bar {
+  display: none;
+}
+
+.intro-title::before {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 1px;
+  margin-bottom: 16px;
+  background: var(--accent);
+}
+
+.detail-banner-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2.6rem, 5.5vw, 4.6rem);
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 24px rgba(var(--ink-rgb), 0.35);
+}
+
+.detail-banner-subtitle {
+  margin-top: 12px;
+  font-size: clamp(1rem, 1.3vw, 1.15rem);
+  font-weight: 300;
+}
+
+/* ── News ─────────────────────────────────────────────────── */
+.news-hero {
+  border-color: rgba(var(--accent-light-rgb), 0.18);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 85% 0%, rgba(var(--accent-rgb), 0.22), transparent 45%),
+    linear-gradient(160deg, #1d1914 0%, #13100c 100%);
+}
+
+.news-hero h1,
+.news-featured h2,
+.news-section-heading h2,
+.news-card h2,
+.news-detail-article h1,
+.news-workflow-header h1 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.news-hero h1 {
+  font-weight: 500;
+  line-height: 1.04;
+}
+
+.news-hero h1 em {
+  font-style: italic;
+}
+
+.news-card h2 {
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+.news-trust-card {
+  backdrop-filter: none;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.news-detail-summary {
+  border-left: none;
+  padding-left: 0;
+  font-weight: 400;
+  font-size: 1.1rem;
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+/* ── Small screens ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .topnav {
+    gap: 10px;
+  }
+
+  .topnav-brand {
+    font-size: 1.2rem;
+  }
+
+  /* Keeps logo, theme toggle, sign-in and the menu toggle on one 360px row. */
+  .topnav .btn {
+    padding: 8px 12px;
+    letter-spacing: 0.01em;
+  }
+
+  .home-map-title {
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+  }
+}
+
+/* ── Motion preferences ───────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

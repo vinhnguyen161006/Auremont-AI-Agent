@@ -8,6 +8,7 @@ would add both a failure mode and a round trip to every question.
 
 import re
 
+from backend.ai.guardrails import detect_prompt_injection
 from backend.utils.text import strip_diacritics
 
 _REALTIME_INTENT_KEYWORDS = (
@@ -345,6 +346,8 @@ _RENTAL_SEARCH_PATTERN = re.compile(
 
 def preflight_policy(query: str) -> str | None:
     """A deterministic policy code for requests that should stop before retrieval."""
+    if detect_prompt_injection(query):
+        return "prompt_injection"
     normalized = strip_diacritics(query)
     if any(keyword in normalized for keyword in _ILLEGAL_REQUEST_KEYWORDS):
         return "illegal_request"

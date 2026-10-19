@@ -86,7 +86,7 @@ def get_projects(db: Session = Depends(get_db)) -> list[ProjectSummary]:
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_role(UserRole.ADMIN))],
 )
-async def add_project(payload: ProjectCreate, db: Session = Depends(get_db)) -> ProjectResponse:
+def add_project(payload: ProjectCreate, db: Session = Depends(get_db)) -> ProjectResponse:
     """Create a project. ADMIN only — this defines the catalogue Sales work against.
 
     Returns the flat `ProjectResponse` rather than `ProjectSummary`: a project is

@@ -124,9 +124,9 @@ def test_embed_retries_past_a_rate_limit_and_succeeds(monkeypatch):
     sleeps: list[float] = []
     monkeypatch.setattr(gemini_client.time, "sleep", sleeps.append)
 
-    vector = gemini_client.embed_query("gia can 2PN bao nhieu?")
+    vectors = gemini_client.embed_documents(["gia can 2PN bao nhieu?"], title="Bang gia")
 
-    assert vector == [0.1, 0.2, 0.3]
+    assert vectors == [[0.1, 0.2, 0.3]]
     assert models.calls == 3
     assert sleeps == [7.0, 7.0]
 
@@ -138,9 +138,24 @@ def test_embed_gives_up_after_max_attempts(monkeypatch):
     monkeypatch.setattr(gemini_client.time, "sleep", lambda *_a: None)
 
     with pytest.raises(gemini_client.GeminiEmbeddingError):
-        gemini_client.embed_query("gia can 2PN bao nhieu?")
+        gemini_client.embed_documents(["gia can 2PN bao nhieu?"], title="Bang gia")
 
     assert models.calls == gemini_client._EMBED_MAX_ATTEMPTS
+
+
+def test_query_embedding_retries_once_with_a_capped_delay(monkeypatch):
+    """The live chat path must not inherit ingestion's multi-second quota backoff."""
+    models = FlakyModels(vectors=[[0.1, 0.2, 0.3]], fail_times=99, error=_rate_limit_error("21s"))
+    monkeypatch.setattr(gemini_client, "get_gemini_client", lambda: FakeFlakyGeminiClient(models))
+    monkeypatch.setattr(gemini_client.settings, "embedding_dimensions", 3)
+    sleeps: list[float] = []
+    monkeypatch.setattr(gemini_client.time, "sleep", sleeps.append)
+
+    with pytest.raises(gemini_client.GeminiEmbeddingError):
+        gemini_client.embed_query("gia can 2PN bao nhieu?")
+
+    assert models.calls == gemini_client._QUERY_EMBED_MAX_ATTEMPTS
+    assert sleeps == [gemini_client._QUERY_EMBED_MAX_RETRY_DELAY_SECONDS]
 
 
 def test_embed_does_not_retry_a_non_rate_limit_error(monkeypatch):

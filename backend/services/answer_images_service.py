@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from backend.core.config import settings
 from backend.core.minio_client import public_object_url
 from backend.models.project import Project
+from backend.repositories.project import all_projects
 from backend.utils.text import strip_diacritics
 
 logger = logging.getLogger(__name__)
@@ -252,7 +253,7 @@ def _images_from_category(db: Session, normalized_query: str) -> list[dict]:
         return []
 
     results: list[dict] = []
-    for project in db.query(Project).all():
+    for project in all_projects(db):
         pricing = (project.details or {}).get("pricing") or []
         categories = {tier["category"] for tier in pricing if tier.get("category")}
         if categories != {category}:
@@ -344,7 +345,7 @@ def resolve_project_references(db: Session, text: str) -> ProjectReferences:
 
 def _project_matches(db: Session, haystack: str) -> list[tuple[int, int, str]]:
     matches: list[tuple[int, int, str]] = []
-    for project in db.query(Project).all():
+    for project in all_projects(db):
         candidates = _project_aliases(project)
         occurrences = [
             (match.start(), len(candidate))
@@ -770,7 +771,7 @@ def _best_match(db: Session, haystack: str) -> Project | None:
     """
     best: Project | None = None
     best_length = 0
-    projects = db.query(Project).all()
+    projects = all_projects(db)
 
     for project in projects:
         for normalized in _project_aliases(project):
