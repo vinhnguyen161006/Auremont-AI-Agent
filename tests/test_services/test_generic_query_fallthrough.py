@@ -5,7 +5,7 @@ specific named) must reach Generate and have a real conversation — not the can
 
 from backend.ai.intent import names_specific_document_topic
 from backend.core.enums import DocumentVisibility
-from backend.services import agent_pipeline
+from backend.services.chat import agent_pipeline
 
 
 def test_names_specific_document_topic_true_for_keyword():

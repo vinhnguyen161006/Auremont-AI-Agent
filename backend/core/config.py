@@ -14,10 +14,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "AI20K Project"
+    app_name: str = "Auremont AI Agent"
     app_env: str = "development"
-    app_port: int = Field(default=8000, ge=1, le=65535)
-    app_host: str = "0.0.0.0"  # noqa: S104 - containers must listen beyond loopback
     business_timezone: str = "Asia/Bangkok"
     log_level: str = "INFO"
     log_json: bool | None = None
@@ -31,9 +29,6 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
 
     database_url: str = ""
-
-    llm_api_key: str = ""
-    llm_model: str = ""
 
     GEMINI_API_KEY: str = ""
     # Live customer-turn path: verification and lead scoring stack inside one ~3s budget.

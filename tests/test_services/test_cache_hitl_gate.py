@@ -1,15 +1,15 @@
-"""Cache hit vẫn phải qua cổng HITL.
+"""A cache hit must still pass the HITL gate.
 
-Một cache hit đi thẳng tới END (`_route_after_cache`), nên `_cache_check` là chỗ DUY NHẤT
-cổng HITL còn có thể bật cho câu trả lời lấy từ cache. Trước đây `_store_cache` từ chối mọi
-câu `requires_hitl`, mà trong kho tài liệu bất động sản thì gần như câu nào cũng chạm giá —
-kết quả là collection cache chưa từng được tạo. Đổi lại: cache cả câu chạm giá, nhưng chạy
-lại RiskCheck khi lấy ra.
+A cache hit goes straight to END (`_route_after_cache`), so `_cache_check` is the ONLY place
+the HITL gate can still fire for an answer taken from the cache. `_store_cache` used to refuse
+every `requires_hitl` answer, and in a real-estate knowledge base almost every answer touches a
+price — so the cache collection was never even created. The trade-off now: cache answers that
+touch prices too, but re-run RiskCheck when they are read back.
 """
 
 from backend.core.enums import DocumentVisibility
-from backend.services import agent_pipeline
-from backend.services.cache_service import CachedAnswer
+from backend.services.chat import agent_pipeline
+from backend.services.chat.cache_service import CachedAnswer
 
 PRICE_ANSWER = "- Căn 2PN The Zurich giá 2,5 tỷ đồng, đã bao gồm VAT."
 SAFE_ANSWER = "- Tiện ích nội khu gồm bể bơi bốn mùa và phòng gym."
@@ -36,7 +36,7 @@ def test_cached_price_answer_still_raises_hitl(monkeypatch):
 
 
 def test_cached_safe_answer_does_not_raise_hitl(monkeypatch):
-    """Không phải cứ cache là bật HITL — câu mô tả tiện ích vẫn đi thẳng."""
+    """Not every cached answer raises HITL — an amenity description still goes straight through."""
     monkeypatch.setattr(agent_pipeline.cache_service, "lookup_cache", lambda *a, **kw: _cached(SAFE_ANSWER))
 
     result = agent_pipeline._cache_check({"query": "tiện ích có gì?"})
@@ -46,9 +46,10 @@ def test_cached_safe_answer_does_not_raise_hitl(monkeypatch):
 
 
 def test_hitl_verdict_is_recomputed_not_read_from_the_cache_row(monkeypatch):
-    """RiskCheck chạy trên CHÍNH văn bản cache, không tin vào cờ lưu kèm.
+    """RiskCheck runs on the cached TEXT ITSELF and does not trust the flag stored with it.
 
-    Nếu ai đó ghi nhầm một câu chạm giá vào cache như thể vô hại, cổng vẫn phải bật.
+    If someone mistakenly writes a price answer to the cache as if it were harmless, the
+    gate must still fire.
     """
     monkeypatch.setattr(
         agent_pipeline.cache_service,
@@ -60,7 +61,7 @@ def test_hitl_verdict_is_recomputed_not_read_from_the_cache_row(monkeypatch):
 
 
 def test_price_answer_is_now_cached(monkeypatch):
-    """Đây là thứ mở khoá cả tính năng: trước đây câu chạm giá không bao giờ được ghi."""
+    """This is what unlocks the whole feature: price answers used to never be written."""
     stored: dict = {}
     monkeypatch.setattr(agent_pipeline.cache_service, "store_cache", lambda **kw: stored.update(kw))
 
@@ -70,7 +71,7 @@ def test_price_answer_is_now_cached(monkeypatch):
 
 
 def test_answer_with_listings_is_not_cached(monkeypatch):
-    """CachedAnswer không mang được listings — cache lại sẽ mất thẻ căn hộ."""
+    """CachedAnswer cannot carry listings — caching it would lose the unit cards."""
     stored: dict = {}
     monkeypatch.setattr(agent_pipeline.cache_service, "store_cache", lambda **kw: stored.update(kw))
 

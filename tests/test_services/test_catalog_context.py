@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from backend.services import catalog_context_service
+from backend.services.chat import catalog_context_service
 
 
 class _Project:

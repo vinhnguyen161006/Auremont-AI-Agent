@@ -7,8 +7,8 @@ prompt tax paid on every question. Each of those properties is asserted here.
 
 import pytest
 
-from backend.services import reflection_memory
-from backend.services.reflection_memory import Lesson
+from backend.services.chat import reflection_memory
+from backend.services.chat.reflection_memory import Lesson
 
 
 class _FakeRedis:
@@ -69,21 +69,21 @@ def test_a_passing_answer_records_nothing(fake_redis):
 
 
 def test_a_rejection_without_feedback_records_nothing(fake_redis):
-    """Khong noi duoc sai o dau thi khong co bai hoc nao de rut ra."""
+    """If what went wrong cannot be stated, there is no lesson to learn."""
     reflection_memory.record_lesson(query="Gia can 2PN?", failure_mode="off-topic", feedback="   ")
 
     assert reflection_memory.load_lessons() == []
 
 
 def test_the_fix_generalises_from_the_failure_mode(fake_redis):
-    """`feedback` noi lan nay sai gi; `fix` phai dung duoc cho cau hoi sau."""
+    """`feedback` says what was wrong this time; `fix` must be usable for the next question."""
     _record("Chinh sach thanh toan the nao?", mode="hallucinated-fact", feedback="Ghi 4,1 ty nhung ngu canh co 3,6 ty.")
 
     assert "không suy diễn" in reflection_memory.load_lessons()[0].fix
 
 
 def test_the_same_mistake_twice_reinforces_one_lesson(fake_redis):
-    """Hai lan cung mot loi khong duoc thanh hai dong prompt noi cung mot chuyen."""
+    """The same mistake twice must not become two prompt lines saying the same thing."""
     _record("Chinh sach thanh toan du an nay the nao?")
     _record("Chinh sach thanh toan du an nay the nao?")
 
@@ -103,7 +103,7 @@ def test_a_long_feedback_is_condensed_to_one_sentence(fake_redis):
 
 
 def test_stored_lessons_are_capped(fake_redis):
-    """Memory dai qua lam prompt noisy va tang cost — nen phai co tran cung."""
+    """Too much memory makes the prompt noisy and raises cost — so there must be a hard cap."""
     for index in range(reflection_memory.MAX_LESSONS + 6):
         _record(f"chude{index} khaosat{index} phankhu{index}")
 
@@ -111,7 +111,7 @@ def test_stored_lessons_are_capped(fake_redis):
 
 
 def test_the_least_reinforced_lesson_is_evicted_first(fake_redis):
-    """Bai hoc lap lai nhieu lan la loi that; bai hoc mot lan la re nhat de bo."""
+    """A lesson reinforced many times is a real mistake; a one-off lesson is the cheapest to drop."""
     for index in range(reflection_memory.MAX_LESSONS):
         _record(f"chude{index} khaosat{index} phankhu{index}")
     repeated = "Chinh sach thanh toan the nao"
@@ -134,14 +134,14 @@ def test_a_similar_question_gets_the_lesson(fake_redis):
 
 
 def test_an_unrelated_question_gets_nothing(fake_redis):
-    """Bai hoc khong lien quan van ton token — thà không có còn hơn."""
+    """An unrelated lesson still costs tokens — better to have none."""
     _record("Chinh sach thanh toan du an The Palma the nao?")
 
     assert reflection_memory.relevant_lessons("Tien ich noi khu gom nhung gi?") == []
 
 
 def test_one_shared_common_word_is_not_a_match(fake_redis):
-    """Trung mot tu la trung hop, khong phai lien quan."""
+    """Sharing one word is a coincidence, not relevance."""
     _record("Chinh sach thanh toan du an the nao?")
 
     assert reflection_memory.relevant_lessons("Du an co bao nhieu toa?") == []
@@ -157,7 +157,7 @@ def test_only_a_couple_of_lessons_reach_one_prompt(fake_redis):
 
 
 def test_accents_do_not_prevent_a_match(fake_redis):
-    """Sale go khong dau lien tuc — bai hoc van phai khop."""
+    """Sales type without accents all the time — lessons must still match."""
     _record("Chính sách thanh toán dự án thế nào?")
 
     assert reflection_memory.relevant_lessons("chinh sach thanh toan ra sao") != []
@@ -186,7 +186,7 @@ def test_redis_down_yields_no_lessons(broken_redis):
 
 
 def test_recording_survives_a_redis_outage(broken_redis):
-    """Ghi that bai chi mat bai hoc, khong duoc lam hong cau tra loi dang phuc vu."""
+    """A failed write only loses the lesson; it must not break the answer being served."""
     _record("Chinh sach thanh toan the nao?")
 
 
@@ -238,10 +238,11 @@ def test_sale_session_scopes_are_isolated_and_cleared_independently(fake_redis):
 
 
 def test_trailing_question_mark_does_not_swallow_the_last_word():
-    """Cau hoi tieng Viet nao cung ket thuc bang '?', va tu cuoi thuong la ten du an.
+    """Every Vietnamese question ends with '?', and the last word is often the project name.
 
-    Loc bang `word.isalnum()` tung loai bo moi token dinh dau cau, nen "Palma?" bien mat
-    hoan toan — trigger mat dung tu phan biet du an nay voi du an khac.
+    Filtering with `word.isalnum()` once dropped every token with trailing punctuation, so
+    "Palma?" vanished entirely — the trigger lost exactly the word that tells this project
+    apart from the others.
     """
     assert reflection_memory._tokenise("Gia can 2PN The Palma?") == ["gia", "can", "2pn", "the", "palma"]
     assert reflection_memory._tokenise("Bang gia the nao!") == ["bang", "gia", "the", "nao"]
@@ -266,9 +267,9 @@ def test_the_right_project_lesson_ranks_first(fake_redis):
 
 
 def test_one_defect_labelled_two_ways_stays_one_lesson(fake_redis):
-    """Du lieu that tung co 'gia 2pn con' luu hai lan — mot lan incomplete-answer, mot lan
-    missing-evidence — cung mot cau chu "Chua tra loi ton kho". Voi
-    MAX_LESSONS_PER_PROMPT = 2, hai dong do chiem ca hai slot de noi dung mot y.
+    """Real data once stored 'gia 2pn con' twice — once as incomplete-answer, once as
+    missing-evidence — with the same text "Chua tra loi ton kho". With
+    MAX_LESSONS_PER_PROMPT = 2, those two lines took both slots to say one thing.
     """
     _record("Gia can 2PN con khong?", mode="incomplete-answer", feedback="Chua tra loi ton kho")
     _record("Gia can 2PN con khong?", mode="missing-evidence", feedback="Chua tra loi ton kho")

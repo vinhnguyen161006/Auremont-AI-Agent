@@ -21,9 +21,9 @@ from backend.models.user import User
 from backend.repositories.document import create_document
 from backend.routers import documents as documents_router
 from backend.schemas.document import DocumentCreate
-from backend.services import ingestion_service, vector_store_service
-from backend.services.parser_service import ParsedSection
-from backend.services.vector_store_service import VectorStoreError
+from backend.services.documents import ingestion_service, vector_store_service
+from backend.services.documents.parser_service import ParsedSection
+from backend.services.documents.vector_store_service import VectorStoreError
 
 
 @pytest.fixture
@@ -143,7 +143,7 @@ def test_upload_rejects_unknown_project_before_creating_document(client, db_sess
 
 
 def test_upload_reports_ai_quota_as_actionable_service_unavailable(client, monkeypatch):
-    from backend.services.ingestion_service import (
+    from backend.services.documents.ingestion_service import (
         AI_SERVICE_QUOTA_PUBLIC_MESSAGE,
         DocumentAIQuotaExceededError,
     )

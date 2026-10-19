@@ -2,7 +2,7 @@ import fitz
 import pytest
 from docx import Document
 
-from backend.services.parser_service import (
+from backend.services.documents.parser_service import (
     UnsupportedDocumentTypeError,
     parse_document,
 )
@@ -120,10 +120,10 @@ def test_parse_docx_returns_text_without_page(tmp_path):
 
 
 def test_parse_docx_reads_tables_in_document_order(tmp_path):
-    """Bảng chiết khấu/tiến độ trong file Word phải vào được kho tri thức.
+    """Discount and payment-schedule tables in Word files must reach the knowledge base.
 
-    `document.paragraphs` bỏ qua bảng, nên trước đây file ingest "thành công" mà
-    toàn bộ con số biến mất — không có cảnh báo nào cho Admin.
+    `document.paragraphs` skips tables, so files used to ingest "successfully" with every
+    figure missing — and nothing warned the Admin.
     """
     path = tmp_path / "csbh.docx"
 
@@ -153,7 +153,7 @@ def test_parse_docx_reads_tables_in_document_order(tmp_path):
 
 
 def test_parse_docx_with_only_a_table_is_not_treated_as_empty(tmp_path):
-    """Bảng giá thuần (không có đoạn văn nào) trước đây bị coi là file rỗng."""
+    """A pure price table (no paragraphs at all) used to be treated as an empty file."""
     path = tmp_path / "bang-gia.docx"
 
     document = Document()

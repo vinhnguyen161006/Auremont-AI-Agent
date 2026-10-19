@@ -1,9 +1,10 @@
-"""Shared test accounts and sample projects seeded on every startup.
+"""Shared test accounts and sample projects seeded on startup.
 
-The credentials match the hint shown on the login screen
-(frontend/src/routes/sale/Login.tsx). Seeding runs on every boot so anyone who
-clones the repo and runs `docker compose up` can log in immediately, without
-sharing a database or running a manual user-creation script.
+Test accounts are seeded on every boot of a development/test environment so anyone who
+clones the repo and runs `docker compose up` can log in immediately, without sharing a
+database or running a manual user-creation script. They are never seeded in production:
+their passwords are public in this file, and `ensure_seed_user` re-activates them and
+resets their passwords on every boot.
 
 Emails must satisfy `EmailStr` on UserResponse: email-validator rejects the
 .local/.test domains, and while seeding would still create the user,
@@ -16,6 +17,7 @@ empty catalogue would leave the whole chat flow unusable on a fresh install.
 
 import logging
 
+from backend.core.config import get_settings
 from backend.core.enums import UserRole
 
 logger = logging.getLogger(__name__)
@@ -69,17 +71,23 @@ def seed_projects() -> None:
         )
     except Exception:  # pragma: no cover - a failed seed must not block startup
         db.rollback()
-        logger.warning("Seed du an that bai — bo qua.", exc_info=True, extra={"event": "seed.projects.failed"})
+        logger.warning(
+            "Seeding demo projects failed; continuing startup.", exc_info=True, extra={"event": "seed.projects.failed"}
+        )
     finally:
         db.close()
 
 
 def seed_users() -> None:
-    """Create (or reset) the shared test accounts. Never raises.
+    """Create (or reset) the shared test accounts outside production. Never raises.
 
     Imports are local so that importing this module does not pull in a database
     session at module-import time.
     """
+    if get_settings().is_production:
+        logger.info("Skipping test account seeding in production.", extra={"event": "seed.users.skipped"})
+        return
+
     from backend.core.mysql_client import SessionLocal
     from backend.repositories.user import ensure_seed_user
 
@@ -101,6 +109,8 @@ def seed_users() -> None:
         )
     except Exception:  # pragma: no cover - a failed seed must not block startup
         db.rollback()
-        logger.warning("Seed tai khoan test that bai — bo qua.", exc_info=True, extra={"event": "seed.users.failed"})
+        logger.warning(
+            "Seeding test accounts failed; continuing startup.", exc_info=True, extra={"event": "seed.users.failed"}
+        )
     finally:
         db.close()

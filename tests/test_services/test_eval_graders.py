@@ -58,7 +58,7 @@ def test_answered_run_with_citations_passes():
 
 
 def test_cache_hit_is_not_judged_on_citations():
-    """Cau tra loi tu cache da qua bar nay mot lan roi khi duoc ghi vao cache."""
+    """An answer from the cache already passed this bar once, when it was written to the cache."""
     assert grade_answered_runs_are_grounded(_run(citation_count=0, used_cache=True)).passed
 
 
@@ -79,7 +79,7 @@ def test_retrieval_present_passes():
 
 
 def test_inventory_needed_but_never_called_fails():
-    """Tra loi ton kho tu tai lieu la sai kieu doc len van rat troi chay."""
+    """Answering stock questions from documents is wrong even when it reads fluently."""
     run = _run(steps=[{"name": "intent", "needs_inventory": True}])
 
     assert not grade_inventory_tool_called_when_needed(run).passed
@@ -92,7 +92,7 @@ def test_inventory_not_needed_passes_without_the_tool():
 
 
 def test_blind_retry_fails():
-    """Chinh la hanh vi truoc khi co Reflexion — grader nay phai bat duoc."""
+    """This is exactly the behaviour before Reflexion — this grader must catch it."""
     run = _run(
         steps=[
             {"name": "generate", "attempt": 1, "corrected": False},

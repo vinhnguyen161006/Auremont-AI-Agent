@@ -16,8 +16,8 @@ from backend.models.chat_session import ChatSession
 from backend.models.message import Message
 from backend.models.user import User
 from backend.repositories.message import create_message, list_messages_for_session
-from backend.services import agent_pipeline
-from backend.services.agent_pipeline import PipelineResult
+from backend.services.chat import agent_pipeline
+from backend.services.chat.agent_pipeline import PipelineResult
 
 
 @pytest.fixture

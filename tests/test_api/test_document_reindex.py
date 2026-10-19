@@ -17,7 +17,7 @@ from backend.models.user import User
 from backend.repositories.document import create_document
 from backend.routers import documents as documents_router
 from backend.schemas.document import DocumentCreate
-from backend.services.ingestion_service import (
+from backend.services.documents.ingestion_service import (
     AI_SERVICE_QUOTA_PUBLIC_MESSAGE,
     DocumentAIQuotaExceededError,
     DocumentIngestionError,

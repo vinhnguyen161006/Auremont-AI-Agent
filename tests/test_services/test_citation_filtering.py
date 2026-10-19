@@ -5,7 +5,7 @@ query that makes the model ask "which project do you mean?" instead of answering
 of them — citing files from projects the reply never engaged with would be misleading.
 """
 
-from backend.services.agent_pipeline import _citations_for
+from backend.services.chat.agent_pipeline import _citations_for
 
 
 def _doc(

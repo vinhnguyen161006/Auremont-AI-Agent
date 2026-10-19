@@ -55,12 +55,8 @@ from backend.schemas.document_reclassification import (
     ReclassificationPreviewRequest,
     ReclassificationPreviewResponse,
 )
-from backend.services.cache_service import clear_cache
-from backend.services.document_coverage_service import (
-    document_matches_project_scope,
-    project_scope_aliases,
-)
-from backend.services.ingestion_service import (
+from backend.services.chat.cache_service import clear_cache
+from backend.services.documents.ingestion_service import (
     AI_SERVICE_QUOTA_PUBLIC_MESSAGE,
     DocumentAIQuotaExceededError,
     DocumentIngestionError,
@@ -71,15 +67,20 @@ from backend.services.ingestion_service import (
     reindex_document,
     sanitize_and_scan,
 )
-from backend.services.legacy_reclassification_service import (
+from backend.services.documents.legacy_reclassification_service import (
     InvalidConfirmationTokenError,
     LegacyReclassificationError,
     apply_document_reclassification,
     list_reclassification_candidates,
     preview_document_reclassification,
 )
-from backend.services.project_metadata_service import ProjectCatalogEntry, classification_project_catalog
-from backend.services.vector_store_service import (
+from backend.services.documents.project_scope_service import (
+    ProjectCatalogEntry,
+    classification_project_catalog,
+    document_matches_project_scope,
+    project_scope_aliases,
+)
+from backend.services.documents.vector_store_service import (
     VectorStoreError,
     delete_document_vectors,
     document_vector_metadata_snapshot,

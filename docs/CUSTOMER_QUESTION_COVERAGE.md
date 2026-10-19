@@ -1,65 +1,65 @@
-# Phủ câu hỏi tư vấn khách hàng
+# Customer question coverage
 
-Danh sách câu hỏi khách hàng không thể được giải quyết chỉ bằng cách thêm prompt. Mỗi câu trả lời phải đi qua đúng nguồn sự thật; nếu nguồn chưa có trường cần thiết, chatbot phải nói rõ phần thiếu và hỏi thêm dữ liệu hoặc chuyển chuyên viên.
+The customer questions that cannot be solved just by adding to the prompt. Every answer must come from the right source of truth; when that source lacks a needed field, the chatbot must say exactly what is missing and ask for more data or hand over to a consultant.
 
-## Ma trận nguồn dữ liệu
+## Data source matrix
 
-| Nhóm câu hỏi | Nguồn sự thật | Trạng thái |
+| Question group | Source of truth | Status |
 |---|---|---|
-| Vị trí, chủ đầu tư, quy mô, loại căn, diện tích, bàn giao, sở hữu tổng quan | `Project.details.project` | Đã đưa vào context có cấu trúc |
-| Giá theo loại căn | `Project.details.pricing` | Đã hỗ trợ dưới dạng giá catalogue tham khảo |
-| Tiện ích | `Project.details.amenities` | Đã đưa vào context có cấu trúc |
-| Chính sách thanh toán, chiết khấu, vay | `Project.details.sales_policies` và tài liệu đã duyệt | Đã trả lời được phần có dữ liệu; chính sách thiếu ngày hiệu lực phải yêu cầu xác nhận |
-| Căn còn trống, mã căn, diện tích và giá từng căn | Inventory API | Đã có route real-time; không được dùng PDF/catalogue để xác nhận còn căn |
-| Mặt bằng căn/tòa | Gallery và metadata ảnh | Đã có ảnh nếu file được map đúng dự án, tòa và loại căn |
-| Điều khoản pháp lý chi tiết, giấy phép, bảo lãnh, hợp đồng | Tài liệu pháp lý đã duyệt trong RAG | Chỉ trả lời khi tài liệu tương ứng đã được upload, phân loại và duyệt |
-| Hướng, view, tầng, căn góc, gần thang/rác, độ ồn | Thuộc tính cấp mã căn trong inventory | Chưa đủ schema/dữ liệu cho mọi dự án |
-| VAT, phí bảo trì, phí quản lý, gửi xe, điện nước | Bảng phí/chính sách có ngày hiệu lực | Chưa đủ dữ liệu chuẩn hóa |
-| Số tiền từng đợt | Giá căn + lịch thanh toán có tỷ lệ và mốc ngày | Cần calculator và lịch thanh toán có cấu trúc |
-| Khoản vay và tiền trả hàng tháng | Giá căn, vốn tự có, LTV, kỳ hạn, lãi suất theo giai đoạn, phương thức dư nợ | Cần calculator; không được tự chọn lãi suất/kỳ hạn |
-| Thời gian di chuyển, ùn tắc, hạ tầng tương lai | Dữ liệu bản đồ/giao thông có thời điểm và tài liệu quy hoạch chính thức | Chưa có; không được ước lượng từ mô tả vị trí |
-| Giá thuê, tỷ suất, thanh khoản, tăng giá | Dữ liệu giao dịch/cho thuê có ngày và mẫu so sánh | Chưa có; chỉ được tính kịch bản, không dự báo như sự thật |
-| Giữ căn, đặt cọc, lịch xem, gặp tư vấn | CRM/booking/hold service | Lead được đánh dấu HOT; thao tác thật cần tích hợp dịch vụ tương ứng |
+| Location, developer, scale, unit types, areas, handover, ownership overview | `Project.details.project` | In the structured context |
+| Price by unit type | `Project.details.pricing` | Supported as indicative catalogue prices |
+| Amenities | `Project.details.amenities` | In the structured context |
+| Payment, discount and loan policies | `Project.details.sales_policies` and approved documents | Answered where data exists; a policy with no effective date must be confirmed |
+| Available units, unit codes, per-unit area and price | Inventory API | Real-time route in place; PDFs/catalogue must never confirm availability |
+| Unit/tower floor plans | Gallery and image metadata | Images available when files are mapped to the right project, tower and unit type |
+| Detailed legal terms, permits, guarantees, contracts | Approved legal documents in RAG | Answered only once the document is uploaded, classified and approved |
+| Orientation, view, floor, corner unit, near lift/trash room, noise | Unit-level attributes in inventory | Schema/data not yet complete for every project |
+| VAT, maintenance fee, management fee, parking, utilities | Fee tables/policies with effective dates | Normalised data not yet available |
+| Amount per payment instalment | Unit price + payment schedule with percentages and dates | Needs a calculator and a structured payment schedule |
+| Loan amount and monthly payment | Unit price, own capital, LTV, term, staged interest rates, repayment method | Needs a calculator; rates/terms must never be chosen by the model |
+| Travel time, congestion, future infrastructure | Dated map/traffic data and official planning documents | Not available; must not be estimated from the location description |
+| Rent, yield, liquidity, price growth | Dated transaction/rental data and comparables | Not available; only scenarios may be computed, never presented as forecasts |
+| Holding a unit, deposits, viewings, meeting a consultant | CRM/booking/hold service | The lead is marked HOT; real actions need the corresponding service integration |
 
-## Quy tắc trả lời
+## Answering rules
 
-1. Tồn kho thắng catalogue và tài liệu tĩnh khi hỏi một mã căn hoặc trạng thái hiện tại.
-2. Giá catalogue phải ghi rõ là khoảng tham khảo, không phải giá chốt của căn đang còn.
-3. Chính sách, ưu đãi và lãi suất không có `effective_from`, `effective_to` hoặc `as_of` phải được xác nhận lại.
-4. Không nội suy hướng/view/tầng/độ ồn/pháp lý/thời gian di chuyển từ tên dự án hay ảnh.
-5. Phép tính tài chính chỉ chạy khi đủ đầu vào và phải hiển thị công thức, giả định, ngày áp dụng.
-6. Câu hỏi gồm nhiều ý được trả lời theo từng ý: trả phần có bằng chứng, nêu chính xác phần đang thiếu, rồi đề nghị bước tiếp theo.
+1. Inventory beats the catalogue and static documents for a unit code or current status.
+2. Catalogue prices must be labelled as an indicative range, not the final price of an available unit.
+3. Policies, offers and interest rates without `effective_from`, `effective_to` or `as_of` must be re-confirmed.
+4. Never infer orientation/view/floor/noise/legal status/travel time from a project name or an image.
+5. Financial calculations only run with complete inputs and must show the formula, assumptions and effective date.
+6. A multi-part question is answered part by part: give the parts with evidence, name exactly what is missing, then propose the next step.
 
-## Dữ liệu cần bổ sung
+## Data still needed
 
-### Inventory cấp mã căn
+### Unit-level inventory
 
-Thêm các trường: `tower`, `floor`, `direction`, `view`, `is_corner`, `near_elevator`, `near_trash_room`, `noise_notes`, `gross_area_m2`, `net_area_m2`, `price_vnd`, `status`, `status_as_of`, `holdable_until` và nguồn cập nhật.
+Add the fields `tower`, `floor`, `direction`, `view`, `is_corner`, `near_elevator`, `near_trash_room`, `noise_notes`, `gross_area_m2`, `net_area_m2`, `price_vnd`, `status`, `status_as_of`, `holdable_until` and the update source.
 
-### Chính sách thương mại
+### Commercial policies
 
-Chuẩn hóa `deposit_amount`, danh sách đợt thanh toán (`percentage`, `due_date` hoặc điều kiện), VAT/phí bảo trì, chiết khấu, quà tặng, ngân hàng, LTV, thời gian hỗ trợ lãi, lãi suất sau ưu đãi, phí trả nợ sớm và `effective_from`/`effective_to`.
+Normalise `deposit_amount`, the list of payment instalments (`percentage`, `due_date` or condition), VAT/maintenance fee, discounts, gifts, banks, LTV, interest-support period, post-promotion rate, early-repayment fee and `effective_from`/`effective_to`.
 
-### Pháp lý và bàn giao
+### Legal and handover
 
-Mỗi khẳng định cần `document_id`, số văn bản, ngày ban hành, cơ quan phát hành, phạm vi áp dụng và trạng thái duyệt. Thông số bàn giao cần hãng/model hoặc mô tả chính xác, chiều cao trần, loại kính, PCCC, tiến độ và ngày cập nhật.
+Every claim needs a `document_id`, document number, issue date, issuing authority, scope and approval status. Handover specifications need the brand/model or an exact description, ceiling height, glass type, fire safety, schedule and last-updated date.
 
-### Vận hành và đầu tư
+### Operations and investment
 
-Bảng phí cần ngày hiệu lực. Dữ liệu đầu tư cần giao dịch so sánh, hợp đồng thuê hoặc nguồn thị trường, phạm vi địa lý, khoảng thời gian và cỡ mẫu; kết quả hiển thị là kịch bản, không phải cam kết lợi nhuận.
+Fee tables need effective dates. Investment data needs comparable transactions, leases or market sources, geographic scope, time period and sample size; results are shown as scenarios, never as a profit commitment.
 
-## Lead Scoring HOT
+## HOT lead scoring
 
-Các ý định giao dịch rõ ràng được đánh dấu HOT ngay bằng rule: đặt cọc/chuyển tiền, xin bảng hàng mới nhất, xem căn thực tế hoặc căn mẫu, kiểm tra một căn còn không, giữ căn, xin chính sách/tiến độ cụ thể, tính từng đợt hoặc khoản vay, chuẩn bị/ký hồ sơ đặt cọc-hợp đồng, gặp nhân viên và sắp lịch tham quan. Tín hiệu được giữ qua các lượt sau để một câu “cảm ơn” không làm lead hạ nhiệt.
+Clear transaction intents are marked HOT immediately by rule: deposits/money transfers, asking for the latest stock list, viewing a real or show unit, checking whether a unit is still available, holding a unit, asking for a specific policy/schedule, computing instalments or a loan, preparing/signing deposit or contract paperwork, meeting staff and scheduling a visit. The signal persists across later turns so a "thank you" does not cool the lead down.
 
-## Kiểm thử chấp nhận
+## Acceptance tests
 
-Mỗi câu trong bộ câu hỏi nên có nhãn:
+Every question in the question set should be labelled with:
 
-- `source`: `project_profile`, `inventory`, `document`, `calculator`, `crm` hoặc `unsupported`;
-- `freshness`: có yêu cầu dữ liệu hiện tại hay không;
-- `must_include`: dữ kiện hoặc cảnh báo bắt buộc;
-- `must_not_claim`: điều chatbot không được suy diễn;
-- `lead_tier`: riêng 12 câu giao dịch là `HOT`.
+- `source`: `project_profile`, `inventory`, `document`, `calculator`, `crm` or `unsupported`;
+- `freshness`: whether current data is required;
+- `must_include`: required facts or warnings;
+- `must_not_claim`: what the chatbot must not infer;
+- `lead_tier`: `HOT` for the 12 transaction questions.
 
-Bộ test phải kiểm tra cả câu có dấu/không dấu, câu nhiều ý, cách diễn đạt gần nghĩa và trường hợp nguồn phụ thuộc bị lỗi.
+The tests must cover accented and unaccented questions, multi-part questions, near-synonymous phrasings and failures of a dependent source.

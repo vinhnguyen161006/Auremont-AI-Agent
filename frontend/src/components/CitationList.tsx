@@ -69,7 +69,7 @@ export function CitationList({ citations, className, label }: Props) {
     } catch {
       // The signed link can fail to generate (file moved, storage hiccup) — worth a
       // console trace for support, not worth a chat bubble interrupting the answer.
-      console.error("Không mở được tài liệu.");
+      console.error("Could not open the cited document.");
     } finally {
       setLoadingId(null);
     }

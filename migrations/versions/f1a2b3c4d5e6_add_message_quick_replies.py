@@ -1,10 +1,10 @@
 """add message quick_replies
 
-Cột mới cho phép AI (khi tư vấn khách qua SYSTEM_INSTRUCTION_PUBLIC) đính kèm 2-4 lựa chọn
-trả lời ngắn cho câu hỏi khảo sát nhu cầu vừa đặt ra (vd. "Để ở"/"Đầu tư"), để khách bấm
-chọn thay vì phải gõ. Model tự quyết định có option hay không theo từng câu hỏi — không có
-bộ option cố định nào ở tầng backend. Xem backend/ai/prompts.py::ConsultAnswer và
-backend/services/agent_pipeline.py.
+The new column lets the AI (when consulting customers via SYSTEM_INSTRUCTION_PUBLIC) attach
+2-4 short answer options to the needs-discovery question it just asked (e.g. "Để ở"/"Đầu tư"),
+so the customer can tap instead of typing. The model decides per question whether to offer
+options — there is no fixed option set in the backend. See backend/ai/prompts.py::ConsultAnswer
+and backend/services/chat/agent_pipeline.py.
 
 Revision ID: f1a2b3c4d5e6
 Revises: e7f8a9b0c1d2

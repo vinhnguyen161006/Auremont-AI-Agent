@@ -8,8 +8,8 @@ fail-closed behaviour — never the LLM call itself, which is stubbed throughout
 
 import pytest
 
-from backend.services import verifier_service
-from backend.services.verifier_service import (
+from backend.services.chat import verifier_service
+from backend.services.chat.verifier_service import (
     FailureMode,
     NextAction,
     VerifierResult,
@@ -50,7 +50,7 @@ def judge(monkeypatch):
 
 
 def test_score_is_the_weakest_of_the_three_criteria():
-    """Điểm tổng là min: mạnh ở hai tiêu chí không cứu được tiêu chí còn lại."""
+    """The overall score is the min: strength on two criteria cannot rescue the third."""
     assert _verdict(faithfulness=0.95, relevancy=0.9, completeness=0.3).score == 0.3
 
 
@@ -106,7 +106,7 @@ def test_unknown_failure_mode_degrades_instead_of_dropping_the_scores():
 
 
 def test_unknown_next_action_falls_back_to_regenerate():
-    """Verdict không đọc được KHÔNG được trở thành lý do cho câu trả lời kém đi thẳng tới Sale."""
+    """An unreadable verdict must NOT become a way for a poor answer to go straight to a Sale."""
     verdict = VerifierResult(faithfulness=0.2, relevancy=0.2, next_action="???")
 
     assert verdict.next_action is NextAction.REGENERATE
@@ -123,7 +123,7 @@ def test_scores_on_a_0_100_scale_are_rescaled():
 
 
 def test_judge_failure_scores_zero_and_declines(judge, monkeypatch):
-    """Verifier hỏng phải trượt kín, và phải nói rõ là hỏng chứ không giả vờ chấm điểm."""
+    """A broken Verifier must fail closed, and say clearly that it broke rather than pretend to score."""
 
     def _boom(prompt, schema, system_instruction=None):
         raise RuntimeError("Gemini down")

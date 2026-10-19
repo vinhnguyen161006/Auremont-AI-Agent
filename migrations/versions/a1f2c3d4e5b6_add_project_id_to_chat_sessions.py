@@ -1,11 +1,11 @@
 """add project_id to chat_sessions
 
-Phiên tư vấn cần biết nó thuộc dự án nào: Agent Pipeline dùng `project_id` để tra
-tồn kho real-time (`lookup_inventory` bắt buộc có tham số này) và để lọc tài liệu
-đúng dự án khi retrieve từ Qdrant.
+A consultation session needs to know which project it belongs to: the Agent Pipeline uses
+`project_id` to look up real-time stock (`lookup_inventory` requires it) and to restrict
+retrieval from Qdrant to that project's documents.
 
-Nullable vì các phiên tạo trước migration này không có giá trị, và Sale vẫn có thể
-mở phiên hỏi những câu chung không gắn dự án nào.
+Nullable because sessions created before this migration have no value, and a Sale can
+still open a session for general questions not tied to any project.
 
 Revision ID: a1f2c3d4e5b6
 Revises: df3813c946cc
@@ -41,9 +41,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema.
 
-    Bỏ FK trước rồi mới bỏ cột. Không gọi `drop_index` cho index của cột này —
-    MySQL báo lỗi 1553 khi index đang được FK dùng, và drop cột sẽ tự dọn index.
-    Đây là cùng convention với migration baseline.
+    Drop the FK before the column. Do not call `drop_index` for this column's index —
+    MySQL raises error 1553 while the index backs an FK, and dropping the column removes
+    the index anyway. This is the same convention as the baseline migration.
     """
     with op.batch_alter_table('chat_sessions') as batch_op:
         batch_op.drop_constraint('fk_chat_sessions_project_id_projects', type_='foreignkey')

@@ -9,8 +9,8 @@ from backend.core.mysql_client import get_db
 from backend.main import app
 from backend.models.user import User
 from backend.repositories.message import create_message
-from backend.services import agent_pipeline, memory_service, reflection_memory, search_criteria
-from backend.services.agent_pipeline import PipelineResult
+from backend.services.chat import agent_pipeline, memory_service, reflection_memory, search_criteria
+from backend.services.chat.agent_pipeline import PipelineResult
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def sales(db_session):
 
 @pytest.fixture
 def admin(db_session):
-    """Admin cũng chat được — dùng để kiểm tra role không bị chặn khỏi luồng chat."""
+    """Admins can chat too — used to check that the role is not locked out of the chat flow."""
     user = User(username="admin_a", email="admin@example.com", hashed_password="x", role=UserRole.ADMIN)
     db_session.add(user)
     db_session.commit()
@@ -106,7 +106,7 @@ def test_admin_can_use_the_chat_flow(as_sale, admin, stub_pipeline):
 
 
 def test_admin_cannot_read_a_sales_session(as_sale, sales, admin, stub_pipeline):
-    """Mở chat cho admin không được phá cách ly: phiên của sale vẫn là riêng tư."""
+    """Opening chat to admins must not break isolation: a sale's session stays private."""
     owner = sales[0]
     session_id = _create_session(as_sale(owner), title="Khách riêng của Sale")
 

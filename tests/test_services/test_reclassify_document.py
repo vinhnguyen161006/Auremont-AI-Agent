@@ -12,11 +12,11 @@ it no longer has.
 
 import pytest
 
-from backend.core.enums import DocumentCategory, DocumentReviewStatus, DocumentStatus
+from backend.core.enums import DocumentBlockReason, DocumentCategory, DocumentReviewStatus, DocumentStatus
 from backend.models.document import Document
 from backend.models.project import Project
-from backend.services import ingestion_service, vector_store_service
-from backend.services.ingestion_service import (
+from backend.services.documents import ingestion_service, vector_store_service
+from backend.services.documents.ingestion_service import (
     ConflictScanOutcome,
     DocumentIngestionError,
     reclassify_document,
@@ -196,6 +196,27 @@ class TestConflictOutcome:
         )
 
         assert result.is_current is False
+
+    def test_a_duplicate_found_after_the_change_is_blocked_as_a_duplicate(
+        self, db_session, document, recorder, monkeypatch
+    ):
+        """The Admin list labels a blocked document by `block_reason`; without it a duplicate
+        shows up as an unexplained block instead of "Trùng tài liệu"."""
+        monkeypatch.setattr(
+            ingestion_service,
+            "scan_conflicts_for",
+            lambda db, doc, raw_text=None, commit=True: ConflictScanOutcome(duplicate_document_ids=(7,)),
+        )
+
+        result = reclassify_document(
+            db_session, document_id=document.id, category=DocumentCategory.PRICE_LIST, reviewed_by=1
+        )
+
+        assert result.status == DocumentStatus.BLOCKED
+        assert result.block_reason == DocumentBlockReason.DUPLICATE_CONTENT
+        assert result.review_status == DocumentReviewStatus.REJECTED
+        assert result.is_current is False
+        assert "Exact duplicate of document(s): 7." in result.classification_reason
 
 
 class TestFailuresStayQuarantined:

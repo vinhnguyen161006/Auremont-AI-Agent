@@ -5,7 +5,7 @@ here is that a personalised answer never escapes into the cache other people rea
 """
 
 from backend.ai import prompts
-from backend.services import agent_pipeline, memory_service
+from backend.services.chat import agent_pipeline, memory_service
 
 PROFILE = "- Loai can thuong quan tam: 2PN"
 
@@ -18,7 +18,7 @@ def test_profile_reaches_the_prompt():
 
 
 def test_prompt_forbids_answering_out_of_the_profile():
-    """Ngan sach ghi nho la goi y ve con nguoi, khong phai so lieu du an."""
+    """The remembered budget is a hint about the person, not project data."""
     prompt = prompts.build_prompt("Gia can 3PN?", [], [], False, False, profile=PROFILE)
 
     assert "KHÔNG phải dữ liệu dự án" in prompt
@@ -35,7 +35,7 @@ def test_no_profile_leaves_the_prompt_byte_identical():
 
 
 def test_profile_sits_above_the_conversation_history():
-    """Ai dang hoi doc truoc, roi moi den ho dang noi gi trong phien nay."""
+    """Who is asking comes first, then what they are saying in this session."""
     history = [{"sender": "sale", "content": "Gia can 2PN?"}]
 
     prompt = prompts.build_prompt("Con 3PN?", [], [], False, False, history=history, profile=PROFILE)
@@ -44,7 +44,7 @@ def test_profile_sits_above_the_conversation_history():
 
 
 def test_cache_is_skipped_for_a_personalised_question(monkeypatch):
-    """Cache dung chung cho moi nguoi — cau tra loi da ca nhan hoa khong duoc lay tu do."""
+    """The cache is shared by everyone — a personalised answer must not be served from it."""
 
     def fail(*_args, **_kwargs):
         raise AssertionError("cache must not be consulted for a personalised question")
@@ -55,7 +55,7 @@ def test_cache_is_skipped_for_a_personalised_question(monkeypatch):
 
 
 def test_cache_still_serves_a_question_from_someone_with_no_profile(monkeypatch):
-    """Bo cache khi co ho so, nhung nguoi dung moi van phai duoc cache phuc vu."""
+    """The cache is bypassed when there is a profile, but a new user must still be served from it."""
     monkeypatch.setattr(
         agent_pipeline.cache_service,
         "lookup_cache",
@@ -70,7 +70,7 @@ def test_cache_still_serves_a_question_from_someone_with_no_profile(monkeypatch)
 
 
 def test_personalised_answers_are_never_written_to_the_cache(monkeypatch):
-    """Ghi cache mot cau tra loi da ca nhan hoa se ro ri sang nguoi hoi tiep theo."""
+    """Caching a personalised answer would leak it to the next person who asks."""
     stored: list[str] = []
     monkeypatch.setattr(agent_pipeline, "_store_cache", lambda query, *_a, **_k: stored.append(query))
     monkeypatch.setattr(

@@ -14,12 +14,12 @@ from backend.repositories.document_relation import (
     list_document_relations,
     review_document_relation,
 )
-from backend.schemas.document_relation import (
+from backend.schemas.document import (
     DocumentRelationCreate,
     DocumentRelationResponse,
     DocumentRelationReview,
 )
-from backend.services.vector_store_service import (
+from backend.services.documents.vector_store_service import (
     VectorStoreError,
     log_and_swallow_restore_failure,
     restore_document_vector_metadata,

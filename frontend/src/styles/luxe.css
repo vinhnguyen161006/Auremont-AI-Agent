@@ -161,7 +161,6 @@ p {
 /* One accent: every feature icon takes the gold treatment. */
 .fi-accent-2,
 .fi-teal,
-.fi-sage,
 .fi-emerald {
   --icon-grad: linear-gradient(135deg, var(--accent), var(--accent-2));
   --icon-border: rgba(var(--accent-rgb), 0.25);
@@ -192,8 +191,7 @@ img[src$="/logo.png"] {
   padding: 7px 16px;
 }
 
-.btn-primary,
-.btn-gold {
+.btn-primary {
   background: var(--grad-primary);
   color: #fff;
   box-shadow:
@@ -201,8 +199,7 @@ img[src$="/logo.png"] {
     0 10px 24px -12px rgba(var(--accent-rgb), 0.75);
 }
 
-.btn-primary:hover,
-.btn-gold:hover {
+.btn-primary:hover {
   background: var(--grad-primary);
   transform: translateY(-1px);
   box-shadow:

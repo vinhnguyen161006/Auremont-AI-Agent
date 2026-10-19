@@ -1,9 +1,12 @@
 from datetime import date, datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from backend.core.enums import (
+    ConflictStatus,
     DocumentCategory,
+    DocumentRelationType,
     DocumentVisibility,
     LegalStatus,
 )
@@ -162,3 +165,80 @@ class DocumentClassificationUpdate(BaseModel):
                 raise ValueError(f"Duplicate section_index: {item.section_index}")
             seen_indexes.add(item.section_index)
         return self
+
+
+class DocumentRelationCreate(BaseModel):
+    source_document_id: int
+    target_document_id: int
+    relation_type: DocumentRelationType
+    scope_note: str | None = Field(default=None, max_length=5000)
+    evidence: str | None = Field(default=None, max_length=5000)
+    confidence: float | None = Field(default=None, ge=0, le=1)
+
+
+class DocumentRelationReview(BaseModel):
+    approve: bool
+
+
+class DocumentRelationResponse(BaseModel):
+    id: int
+    source_document_id: int
+    target_document_id: int
+    relation_type: str
+    scope_note: str | None = None
+    evidence: str | None = None
+    confidence: float | None = None
+    review_status: str
+    reviewed_by: int | None = None
+    reviewed_at: datetime | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+ConflictDetectionMethod = Literal["rule", "llm", "hybrid"]
+
+
+class ConflictResolveRequest(BaseModel):
+    keep_document_id: int
+
+
+class ConflictFlagResponse(BaseModel):
+    id: int
+    document_id_a: int
+    document_id_b: int
+    description: str | None = None
+    detection_method: ConflictDetectionMethod = "rule"
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    similarity_score: float | None = Field(default=None, ge=0, le=1)
+    conflict_type: str | None = None
+    severity: Literal["low", "medium", "high"] = "medium"
+    evidence: dict[str, Any] | None = None
+    analysis_version: str | None = None
+    status: ConflictStatus
+    created_at: datetime
+    resolved_by: int | None = None
+    resolved_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ConflictDocumentSummary(BaseModel):
+    id: int
+    title: str
+    project_id: str | None = None
+    version_label: str | None = None
+    issued_date: date | None = None
+    effective_date: date | None = None
+    uploaded_at: datetime | None = None
+    category: str
+    visibility: str
+    summary: str | None = None
+    classification_reason: str | None = None
+
+
+class ConflictDetailResponse(ConflictFlagResponse):
+    project_id: str | None = None
+    project_name: str | None = None
+    document_a: ConflictDocumentSummary
+    document_b: ConflictDocumentSummary

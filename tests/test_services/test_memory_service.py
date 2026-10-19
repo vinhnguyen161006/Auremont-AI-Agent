@@ -9,7 +9,7 @@ import json
 
 import pytest
 
-from backend.services import memory_service
+from backend.services.chat import memory_service
 
 
 class _FakeRedis:
@@ -63,7 +63,7 @@ def test_unit_type_and_budget_are_extracted():
 
 
 def test_price_question_is_not_stored_as_a_budget():
-    """'Gia can 2PN 3,6 ty co dat khong?' hoi GIA CAN, khong phai tien cua khach."""
+    """'Gia can 2PN 3,6 ty co dat khong?' asks for the UNIT PRICE, not the customer's budget."""
     profile = memory_service.extract_facts("Gia can 2PN 3,6 ty co dat khong?")
 
     assert profile.budgets == []
@@ -71,7 +71,7 @@ def test_price_question_is_not_stored_as_a_budget():
 
 
 def test_comparison_of_two_prices_stores_neither():
-    """Cau so sanh hai can — chon nham con so nao cung sai hon la khong chon."""
+    """A comparison of two units — picking the wrong figure is worse than picking neither."""
     profile = memory_service.extract_facts("Tai sao can 5 ty lai dat hon can 3 ty?")
 
     assert profile.budgets == []
@@ -101,7 +101,7 @@ def test_budget_range_is_remembered_as_one_value():
 
 
 def test_spacing_variants_normalise_to_one_token():
-    """'3 PN' va '3pn' phai la cung mot thu, khong tich thanh hai muc rieng."""
+    """'3 PN' and '3pn' must be the same thing, not two separate entries."""
     spaced = memory_service.extract_facts("Con 3 PN thi sao?")
     tight = memory_service.extract_facts("con 3pn thi sao?")
 
@@ -161,7 +161,7 @@ def test_repeating_the_same_interest_does_not_duplicate_it(fake_redis):
 
 
 def test_profile_is_capped(fake_redis):
-    """Ho so dai thi khong con la goi y — no lan at chinh cau hoi hien tai."""
+    """A long profile stops being a hint — it drowns out the current question."""
     key = memory_service.customer_key(7)
     for size in range(1, 8):
         memory_service.remember(key, f"Gia can {size}PN?")
@@ -170,7 +170,7 @@ def test_profile_is_capped(fake_redis):
 
 
 def test_customers_and_sales_use_separate_namespaces(fake_redis):
-    """Ho so cua khach va cua sale khong duoc dinh vao nhau."""
+    """A customer's profile and a sale's profile must never mix."""
     memory_service.remember(memory_service.customer_key(1), "Gia can 2PN?")
     memory_service.remember(memory_service.sale_key(1), "Gia can 3PN?")
 
@@ -198,7 +198,7 @@ def test_load_returns_an_empty_profile_when_redis_is_down(broken_redis):
 
 
 def test_remember_never_raises_when_redis_is_down(broken_redis):
-    """Ghi ho so that bai khong duoc lam hong cau tra loi dang phuc vu."""
+    """A failed profile write must not break the answer being served."""
     memory_service.remember(memory_service.customer_key(7), "Gia can 2PN?")
 
 
@@ -222,7 +222,7 @@ def test_corrupt_json_is_ignored(fake_redis):
 
 
 def test_unexpected_shape_is_ignored(fake_redis):
-    """Gia tri bi sua tay trong redis-cli khong duoc lam sap pipeline."""
+    """A value edited by hand in redis-cli must not crash the pipeline."""
     key = memory_service.customer_key(7)
     fake_redis.store[key] = json.dumps({"unit_types": "2PN", "budgets": None})
 

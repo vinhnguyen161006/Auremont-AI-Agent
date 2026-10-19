@@ -146,6 +146,7 @@ lerna-debug.log*
 # The graders and runner are code; recorded runs are operational data
 eval/runs.jsonl
 eval/results/report.json
+eval/results/*.partial.json
 eval/cache/
 
 # ========== Docker ==========
@@ -184,3 +185,4 @@ CLAUDE.md
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
 .claude/.env.local
+.claude/worktrees/

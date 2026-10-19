@@ -20,8 +20,9 @@ from backend.main import app
 from backend.models.chat_session import ChatSession
 from backend.models.lead import Lead
 from backend.models.user import User
-from backend.services import agent_pipeline, lead_service
-from backend.services.agent_pipeline import PipelineResult
+from backend.services.chat import agent_pipeline
+from backend.services.chat.agent_pipeline import PipelineResult
+from backend.services.leads import lead_service
 
 QUALIFIED_MESSAGE = "cho mình xin bảng giá căn 2PN, ngân sách tầm 3.5 tỷ"
 

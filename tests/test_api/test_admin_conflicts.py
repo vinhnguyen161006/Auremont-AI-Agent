@@ -1,4 +1,4 @@
-"""Cảnh báo mâu thuẫn: quyết định 'giữ tài liệu nào' của Admin phải được thi hành."""
+"""Conflict alerts: an Admin's decision about which document to keep must be enforced."""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -16,14 +16,14 @@ from backend.core.enums import (
 from backend.core.mysql_client import get_db
 from backend.main import app
 from backend.models.conflict_flag import ConflictFlag
+from backend.models.document import document_categories
 from backend.models.document_relation import DocumentRelation
 from backend.models.user import User
 from backend.repositories.conflict_flag import create_conflict
 from backend.repositories.document import create_document, get_document
 from backend.schemas.document import DocumentCreate
-from backend.services import vector_store_service
-from backend.services.document_category_service import document_categories
-from backend.services.vector_store_service import VectorStoreError
+from backend.services.documents import vector_store_service
+from backend.services.documents.vector_store_service import VectorStoreError
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ def client(db_session, admin, vector_syncs):
 
 @pytest.fixture
 def conflict(db_session):
-    """Hai bản bảng giá của cùng một dự án, bị flag là mâu thuẫn."""
+    """Two versions of the same project's price list, flagged as conflicting."""
     old = create_document(db_session, DocumentCreate(title="Bảng giá v1"))
     new = create_document(db_session, DocumentCreate(title="Bảng giá v2"))
     old.status = DocumentStatus.COMPLETED
@@ -282,10 +282,10 @@ def test_conflict_analysis_metadata_is_validated(db_session, conflict, field, kw
 
 
 def test_rejected_document_is_removed_from_retrieval(client, db_session, conflict, vector_syncs):
-    """BLOCKED một mình không đủ: rag_service lọc theo is_current, không nhìn `status`.
+    """BLOCKED alone is not enough: rag_service filters on is_current and ignores `status`.
 
-    Thiếu bước này, Admin bấm "ưu tiên bản mới" xong bảng giá cũ vẫn tiếp tục
-    được dùng để trả lời khách.
+    Without this step, after an Admin clicks "prefer the newer version" the old price list
+    keeps being used to answer customers.
     """
     flag, old, new = conflict
 
@@ -344,7 +344,7 @@ def test_resolved_conflict_leaves_the_open_list(client, conflict):
 
 
 def test_rejects_a_document_outside_the_conflict(client, db_session, conflict):
-    """Nếu không kiểm, quyết định của Admin sẽ áp lên nhầm tài liệu."""
+    """Without this check, an Admin's decision would be applied to the wrong document."""
     flag, old, new = conflict
     unrelated = create_document(db_session, DocumentCreate(title="Tài liệu không liên quan"))
 

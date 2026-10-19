@@ -21,6 +21,14 @@ def strip_diacritics(text: str) -> str:
     return "".join(char for char in decomposed if not unicodedata.combining(char))
 
 
+def fold_for_matching(text: str) -> str:
+    """`strip_diacritics`, with hyphens as spaces and whitespace collapsed.
+
+    So "Hải Âu", "hai au" and the slug "hai-au" all reduce to one comparable string.
+    """
+    return " ".join(strip_diacritics(text).replace("-", " ").split())
+
+
 _EXTERNAL_FIELD_MAX_CHARS = 120
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 

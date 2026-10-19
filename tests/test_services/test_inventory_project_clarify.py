@@ -9,8 +9,8 @@ correctly instead of lumping it in with a genuine API outage.
 """
 
 from backend.core.enums import DocumentVisibility, MessageEmotion
-from backend.services import agent_pipeline
-from backend.services.inventory_service import InventoryApiError, InventoryProjectUnresolvedError
+from backend.services.chat import agent_pipeline
+from backend.services.chat.inventory_service import InventoryApiError, InventoryProjectUnresolvedError
 
 
 def test_project_unresolved_gets_the_clarifying_notice_not_the_outage_message(monkeypatch):

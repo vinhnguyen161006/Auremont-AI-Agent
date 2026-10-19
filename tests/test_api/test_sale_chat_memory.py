@@ -13,8 +13,8 @@ from backend.core.enums import UserRole
 from backend.core.mysql_client import get_db
 from backend.main import app
 from backend.models.user import User
-from backend.services import agent_pipeline
-from backend.services.agent_pipeline import PipelineResult
+from backend.services.chat import agent_pipeline
+from backend.services.chat.agent_pipeline import PipelineResult
 
 
 @pytest.fixture
@@ -68,7 +68,7 @@ def test_first_question_of_a_session_carries_no_history(client, captured):
 
 
 def test_the_question_being_asked_is_not_fed_back_as_its_own_context(client, captured):
-    """Doc memory TRUOC khi luu cau hoi moi — nguoc lai model nhan chinh input cua no hai lan."""
+    """Read memory BEFORE saving the new question — otherwise the model receives its own input twice."""
     session_id = _session(client)
     _ask(client, session_id, "Gia can 2PN?")
     _ask(client, session_id, "Con 3PN thi sao?")
@@ -95,7 +95,7 @@ def test_speaker_is_recorded_on_every_turn(client, captured):
 
 
 def test_edge_case_notices_are_not_replayed_as_context(client, captured, monkeypatch):
-    """'Khong du thong tin' la trang thai UI, khong phai dieu tro ly noi ve du an."""
+    """'Not enough information' is a UI state, not something the assistant said about a project."""
     session_id = _session(client)
 
     monkeypatch.setattr(
@@ -120,7 +120,7 @@ def test_edge_case_notices_are_not_replayed_as_context(client, captured, monkeyp
 
 
 def test_sessions_do_not_share_memory(client, captured):
-    """Moi phien la mot khach rieng — lich su khong duoc ro ri sang phien khac."""
+    """Each session is a separate customer — history must not leak into another session."""
     first = _session(client)
     _ask(client, first, "Gia can 2PN The Palma?")
 

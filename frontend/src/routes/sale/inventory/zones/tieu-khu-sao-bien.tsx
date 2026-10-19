@@ -1,13 +1,14 @@
 // Zone page for the "Sao Biển" villa sub-zone, extracted from the old
 // single-scroll CategoryDetailPage so each sub-zone owns its own route.
 import { FloorPlanTabs, TowerSpotlight, ZoneHeaderBanner, type ImageTab } from "../shared";
+import { PROJECT_IMAGES_BASE_URL } from "../../../../config";
 
 // "Location / Rendering" tab for Sao Biển — only 2 overall images (no per-type
 // exterior renderings like Hải Âu, and no per-type floor plans like Ngọc
 // Trai/Hải Âu, since the crawled source has none available).
 const SAO_BIEN_LOCATION_TABS: ImageTab[] = [
-  { label: "Vị trí Tiểu khu Sao Biển", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/sao-bien/vinhomes-ocean-park-sao-bien.jpg" },
-  { label: "Phối cảnh Sao Biển", src: "https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/sao-bien/phoi-canh-sao-bien-vinhomes-ocean-park.jpg" },
+  { label: "Vị trí Tiểu khu Sao Biển", src: `${PROJECT_IMAGES_BASE_URL}/sao-bien/vinhomes-ocean-park-sao-bien.jpg` },
+  { label: "Phối cảnh Sao Biển", src: `${PROJECT_IMAGES_BASE_URL}/sao-bien/phoi-canh-sao-bien-vinhomes-ocean-park.jpg` },
 ];
 
 // Size/storey figures for Sao Biển villa types — sourced directly from pricing
@@ -25,7 +26,7 @@ export function SaoBienZone() {
       <ZoneHeaderBanner title="Tiểu khu Sao Biển" subtitle="Ôm trọn hồ điều hòa trung tâm 25ha" />
       <TowerSpotlight
         projectId="sao-bien"
-        image="https://pub-2b6dd93e8e8948099737838a9bf56770.r2.dev/sao-bien/phoi-canh-sao-bien-vinhomes-ocean-park.jpg"
+        image={`${PROJECT_IMAGES_BASE_URL}/sao-bien/phoi-canh-sao-bien-vinhomes-ocean-park.jpg`}
         oval={false}
         hideImage
       />

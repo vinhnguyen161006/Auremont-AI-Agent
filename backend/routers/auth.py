@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from backend.core.audit import log_event
 from backend.core.deps import get_current_user
 from backend.core.mysql_client import get_db
+from backend.core.rate_limit import login_rate_limit
 from backend.core.security import (
     create_access_token,
     create_refresh_token,
@@ -24,7 +25,11 @@ class RefreshRequest(BaseModel):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> TokenResponse:
+def login(
+    form: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+    _: None = Depends(login_rate_limit),
+) -> TokenResponse:
     """Internal Sale/Admin login — the role inside the token drives frontend routing."""
     user = get_user_by_username(db, form.username)
 

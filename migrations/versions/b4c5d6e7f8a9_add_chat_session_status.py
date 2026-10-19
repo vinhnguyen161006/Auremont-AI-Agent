@@ -1,9 +1,9 @@
 """add chat session status
 
-Cột `status` cho phép AI tự nhận biết khi nào phải im lặng nhường lời cho Sale: một
-session khách (anonymous/CUSTOMER) chuyển từ BOT_HANDLING sang WAITING_SALE khi cần
-người thật, rồi SALE_HANDLING khi một Sale bấm "Tiếp nhận". Session của Sale tự tư vấn
-(sale_id-only) không dùng tới cột này, giữ mặc định.
+The `status` column lets the AI know when it must stay silent and leave the floor to a Sale:
+a customer session (anonymous/CUSTOMER) moves from BOT_HANDLING to WAITING_SALE when a real
+person is needed, then to SALE_HANDLING when a Sale clicks "Tiếp nhận". A Sale's own
+consultation session (sale_id-only) does not use this column and keeps the default.
 
 Revision ID: b4c5d6e7f8a9
 Revises: a3b4c5d6e7f8

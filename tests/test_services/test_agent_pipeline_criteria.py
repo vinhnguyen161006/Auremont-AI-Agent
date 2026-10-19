@@ -1,6 +1,6 @@
 from backend.core.enums import MessageEmotion
-from backend.services import agent_pipeline, search_criteria, verifier_service
-from backend.services.inventory_service import InventoryUnit
+from backend.services.chat import agent_pipeline, search_criteria, verifier_service
+from backend.services.chat.inventory_service import InventoryUnit
 
 
 class _FakeRedis:

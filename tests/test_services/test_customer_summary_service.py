@@ -6,13 +6,13 @@ from backend.core.enums import MessageSender, SessionChannel, UserRole
 from backend.models.chat_session import ChatSession
 from backend.models.user import User
 from backend.repositories.message import create_message
-from backend.schemas.customer_summary import (
+from backend.schemas.customer import (
     CustomerNeeds,
     CustomerSummaryMetadata,
     CustomerSummarySnapshot,
     SummaryEvidence,
 )
-from backend.services import customer_summary_service
+from backend.services.leads import customer_summary_service
 
 
 def _customer_sessions(db):

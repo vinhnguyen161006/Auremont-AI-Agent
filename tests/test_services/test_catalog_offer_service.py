@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from backend.services import (
+from backend.services.chat import (
     agent_pipeline,
     answer_images_service,
     catalog_offer_service,

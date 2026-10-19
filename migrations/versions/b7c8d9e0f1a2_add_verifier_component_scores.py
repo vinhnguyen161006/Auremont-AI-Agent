@@ -1,17 +1,17 @@
 """add faithfulness and answer_relevancy to messages
 
-Tab 2 của Admin (Đánh giá & Phân tích AI) hiển thị Faithfulness và Answer Relevancy
-thành hai ô riêng, nhưng `messages.verifier_score` chỉ lưu `min(faithfulness, relevancy)`
-— không thể tách ngược một số thành hai. Hai cột này giữ lại điểm thành phần do
-Verifier Agent chấm.
+Admin Tab 2 (AI Evaluation & Analysis) shows Faithfulness and Answer Relevancy as two
+separate tiles, but `messages.verifier_score` only stores `min(faithfulness, relevancy)`
+— one number cannot be split back into two. These two columns keep the component scores
+given by the Verifier Agent.
 
-Tách riêng vì hai chỉ số chẩn đoán hai vấn đề khác nhau: faithfulness thấp nghĩa là
-model bịa số liệu (sửa prompt/verifier), relevancy thấp nghĩa là retrieval lấy sai
-tài liệu (sửa chunking/ingest).
+They are separate because the two metrics diagnose different problems: low faithfulness
+means the model invents figures (fix the prompt/verifier), low relevancy means retrieval
+fetched the wrong documents (fix chunking/ingestion).
 
-Nullable: các message ghi trước migration này không có giá trị, và cả những message
-không hề chạy qua Verifier (cache hit, các notice edge-case như empty state hay mất
-kết nối API tồn kho).
+Nullable: messages written before this migration have no value, and neither do messages
+that never went through the Verifier (cache hits, edge-case notices such as the empty
+state or a lost connection to the inventory API).
 
 Revision ID: b7c8d9e0f1a2
 Revises: a1f2c3d4e5b6
@@ -32,9 +32,9 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     """Upgrade schema.
 
-    Dùng `batch_alter_table` theo đúng convention của các migration trước: SQLite
-    (dùng trong tests/test_migrations.py) không hỗ trợ ALTER đầy đủ, còn trên MySQL
-    batch mode chạy ALTER thẳng như bình thường.
+    Uses `batch_alter_table` following the convention of earlier migrations: SQLite
+    (used in tests/test_migrations.py) does not fully support ALTER, while on MySQL
+    batch mode runs a plain ALTER as usual.
     """
     with op.batch_alter_table('messages') as batch_op:
         batch_op.add_column(sa.Column('faithfulness', sa.Float(), nullable=True))

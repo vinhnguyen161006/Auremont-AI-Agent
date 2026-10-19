@@ -12,8 +12,8 @@ from backend.models.document_relation import DocumentRelation
 from backend.models.user import User
 from backend.repositories.document import create_document, get_document
 from backend.schemas.document import DocumentCreate
-from backend.services import vector_store_service
-from backend.services.vector_store_service import VectorStoreError
+from backend.services.documents import vector_store_service
+from backend.services.documents.vector_store_service import VectorStoreError
 
 
 @pytest.fixture

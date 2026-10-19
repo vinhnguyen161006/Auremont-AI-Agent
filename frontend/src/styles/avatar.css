@@ -102,7 +102,7 @@
 /* ── idle — deliberately still: every bot message carries an idle avatar, and a loop on
    each of them kept the chat repainting forever. ── */
 
-/* ── greeting — onboarding wave (Kịch bản 1): raise into the open-palm wave pose, wiggle it
+/* ── greeting — onboarding wave (scenario 1): raise into the open-palm wave pose, wiggle it
    side to side a few times, then lower back to the resting arm naturally — a pose SWAP
    (crossfade), not a rotation, since the resting arm's hand isn't shaped for waving. Plays
    once. ── */
@@ -116,7 +116,7 @@
   animation: aura-nod-once 1.1s ease-out;
 }
 
-/* ── thinking — "để em kiểm tra hệ thống..." (Kịch bản 3, chờ API) ── */
+/* ── thinking — "để em kiểm tra hệ thống..." (scenario 3, waiting on the API) ── */
 .aura-avatar--thinking .aura-head {
   animation: aura-tilt-hold 0.5s ease-out forwards;
 }
@@ -125,7 +125,7 @@
   animation: aura-chin-tap 1.5s ease-in-out forwards;
 }
 
-/* ── happy — tìm thấy tồn kho, câu trả lời tốt (Kịch bản 2 & 3) ── */
+/* ── happy — stock found, a good answer (scenarios 2 & 3) ── */
 .aura-avatar--happy .aura-torso,
 .aura-avatar--happy .aura-head {
   animation: aura-bounce 0.55s ease-in-out 2;
@@ -137,7 +137,7 @@
   animation: aura-cheer-right 0.55s ease-in-out 2;
 }
 
-/* ── regretful — hết hàng / không đủ thông tin (Kịch bản 3, nhánh xấu).
+/* ── regretful — sold out / not enough information (scenario 3, unhappy path).
    No separate "sad" face art, so this leans entirely on a head droop/tilt + a small slump. ── */
 .aura-avatar--regretful .aura-head {
   animation: aura-tilt-down 0.5s ease-out forwards;
@@ -146,7 +146,7 @@
   animation: aura-slump 0.5s ease-out forwards;
 }
 
-/* ── respectful — chuyển giao Sale, xin thông tin khéo léo (Kịch bản 4 & 5) ── */
+/* ── respectful — handing over to a Sale, asking for details tactfully (scenarios 4 & 5) ── */
 .aura-avatar--respectful .aura-arm-left {
   animation: aura-hand-to-chest 0.7s ease-out forwards;
 }

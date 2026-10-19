@@ -42,20 +42,10 @@ def get_optional_current_user(
     """
     if token is None:
         return None
-
-    payload = decode_token(token)
-    if payload is None or payload.get("type") != "access":
+    try:
+        return get_current_user(token, db)
+    except HTTPException:
         return None
-
-    username = payload.get("sub")
-    if username is None:
-        return None
-
-    user = get_user_by_username(db, username)
-    if user is None or not user.is_active:
-        return None
-
-    return user
 
 
 def require_role(*roles: UserRole):

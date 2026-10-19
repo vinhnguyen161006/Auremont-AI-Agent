@@ -18,7 +18,7 @@ from backend.main import app
 from backend.models.chat_session import ChatSession
 from backend.models.lead import Lead
 from backend.models.user import User
-from backend.services import lead_scoring_service
+from backend.services.leads import lead_scoring_service
 from backend.utils.time import utcnow
 
 

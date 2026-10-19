@@ -1,10 +1,10 @@
 """add handoff_requested_at to chat_sessions
 
-Hàng chờ "Khách đang chờ" (live-inbox) trước đây tính thời gian chờ từ `created_at` của
-session — sai, vì một session có thể được tạo từ rất lâu trước lúc thực sự cần người thật
-(khách chat với AI một hồi rồi mới yêu cầu). Cột mới này chỉ được ghi đúng lúc session
-chuyển sang WAITING_SALE (xem repositories/chat_session.py::enter_waiting_queue), nên phản
-ánh đúng "chờ từ lúc nào".
+The "Khách đang chờ" queue (live inbox) used to compute waiting time from the session's
+`created_at` — wrong, because a session can be created long before a real person is actually
+needed (the customer chats with the AI for a while before asking). This new column is
+written exactly when the session moves to WAITING_SALE (see
+repositories/chat_session.py::enter_waiting_queue), so it reflects when the wait started.
 
 Revision ID: c5d6e7f8a9b0
 Revises: b4c5d6e7f8a9

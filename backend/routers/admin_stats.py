@@ -13,7 +13,7 @@ from backend.core.enums import LeadTier, UserRole
 from backend.core.mysql_client import get_db
 from backend.models.chat_session import ChatSession
 from backend.models.conflict_flag import ConflictFlag
-from backend.models.document import Document
+from backend.models.document import Document, document_has_category
 from backend.models.feedback import Feedback
 from backend.models.hitl_log import HitlLog
 from backend.models.lead import Lead
@@ -27,8 +27,7 @@ from backend.schemas.admin_dashboard import (
     LeadTierCounts,
     LeadTrendPoint,
 )
-from backend.services.document_category_service import document_has_category
-from backend.services.document_coverage_service import (
+from backend.services.documents.project_scope_service import (
     COVERAGE_CATEGORIES,
     document_coverage_state,
     document_matches_project_scope,

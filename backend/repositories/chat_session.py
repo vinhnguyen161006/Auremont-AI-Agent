@@ -8,7 +8,7 @@ from backend.core.enums import SessionChannel, SessionStatus
 from backend.models.chat_session import ChatSession
 from backend.models.message import Message
 from backend.models.user import User
-from backend.schemas.chat_session import ChatSessionCreate
+from backend.schemas.chat import ChatSessionCreate
 from backend.schemas.customer import CustomerChatSessionCreate
 from backend.utils.time import utcnow
 

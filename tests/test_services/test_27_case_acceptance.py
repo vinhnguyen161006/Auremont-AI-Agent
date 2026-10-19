@@ -20,11 +20,11 @@ from backend.ai.intent import (
     preflight_policy,
 )
 from backend.core.enums import LeadTier
-from backend.services import agent_pipeline
-from backend.services import lead_scoring_service as scoring
-from backend.services import search_criteria as sc
-from backend.services.inventory_service import InventoryApiError, InventoryUnit
-from backend.services.rag_service import RetrievalError
+from backend.services.chat import agent_pipeline
+from backend.services.chat import search_criteria as sc
+from backend.services.chat.inventory_service import InventoryApiError, InventoryUnit
+from backend.services.chat.rag_service import RetrievalError
+from backend.services.leads import lead_scoring_service as scoring
 from backend.utils.text import strip_diacritics
 
 TruthSource = Literal["project_profile", "inventory", "document", "calculator", "crm", "unsupported"]

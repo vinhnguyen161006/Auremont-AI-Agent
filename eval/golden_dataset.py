@@ -22,7 +22,7 @@ inventory+policy, price/commitment risk (HITL), and the "not enough information"
 
 from dataclasses import dataclass, field
 
-from backend.services.inventory_service import InventoryUnit
+from backend.services.chat.inventory_service import InventoryUnit
 
 
 @dataclass

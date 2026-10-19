@@ -1,19 +1,19 @@
 """add audit_logs table
 
-Log hiện chỉ đổ ra stdout và biến mất khi container bị thay thế. Điều đó đủ để trả
-lời "vừa nãy hỏng cái gì", nhưng không trả lời được "ai đăng nhập tuần trước",
-"Sale nào đã xác nhận mức giá đó" — vốn là mục đích của một audit trail.
+Logs currently only go to stdout and vanish when the container is replaced. That is
+enough to answer "what just broke", but not "who logged in last week" or "which Sale
+confirmed that price" — which is what an audit trail is for.
 
-Chỉ các sự kiện nghiệp vụ (`salesmate.audit`) được ghi vào đây. Log chẩn đoán
-(traceback, access log) vẫn ở stdout: khối lượng lớn, vòng đời ngắn, và thuộc về
-log collector chứ không phải database vận hành.
+Only business events (`salesmate.audit`) are written here. Diagnostic logs (tracebacks,
+access logs) stay on stdout: they are high-volume, short-lived, and belong to the log
+collector rather than the operational database.
 
-`user_id` cố ý KHÔNG có ForeignKey: một dòng audit phải sống lâu hơn user mà nó
-tham chiếu. Cascade delete xoá sạch dấu vết của một tài khoản vừa bị gỡ sẽ phá
-đúng mục đích của việc lưu audit.
+`user_id` deliberately has NO ForeignKey: an audit row must outlive the user it refers
+to. A cascade delete that wipes every trace of a removed account would defeat the very
+purpose of keeping an audit.
 
-`payload` dùng JSON thay vì một bảng rộng đầy cột NULL: mỗi loại sự kiện mang một
-shape khác nhau, và thêm field cho một sự kiện không nên kéo theo một migration.
+`payload` is JSON rather than a wide table full of NULL columns: each event type has a
+different shape, and adding a field to one event should not require a migration.
 
 Revision ID: c9d0e1f2a3b4
 Revises: b7c8d9e0f1a2

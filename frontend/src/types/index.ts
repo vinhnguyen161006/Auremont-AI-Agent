@@ -157,7 +157,7 @@ export interface CustomerAskResponse extends MessageResponse {
   status: SessionStatus;
 }
 
-// ── Sale live inbox (AI -> Sale handoff) — mirrors backend/schemas/sale_live.py ──
+// ── Sale live inbox (AI -> Sale handoff) — mirrors backend/schemas/customer.py ──
 
 export type LeadTier = "hot" | "warm" | "cold";
 

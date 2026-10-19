@@ -40,22 +40,17 @@ from backend.repositories.chat_session import (
 from backend.repositories.lead import get_lead_for_customer, list_leads_for_customers
 from backend.repositories.message import create_message, history_for_pipeline, list_messages_for_session
 from backend.repositories.user import get_user_by_id, list_users_by_ids
-from backend.schemas.customer_summary import CustomerConversationSummaryResponse
-from backend.schemas.message import MessageResponse
-from backend.schemas.sale_live import (
+from backend.schemas.chat import MessageResponse
+from backend.schemas.customer import (
+    CustomerConversationSummaryResponse,
     LeadDetailResponse,
     LeadSignalDetail,
     LiveInboxEntry,
     SaleLiveMessageRequest,
     SaleSuggestResponse,
 )
-from backend.services import (
-    agent_pipeline,
-    customer_summary_service,
-    lead_scoring_service,
-    lead_service,
-    memory_service,
-)
+from backend.services.chat import agent_pipeline, memory_service
+from backend.services.leads import customer_summary_service, lead_scoring_service, lead_service
 from backend.utils.time import utcnow
 
 router = APIRouter(

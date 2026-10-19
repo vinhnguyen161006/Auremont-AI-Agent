@@ -14,7 +14,7 @@ from backend.repositories.feedback import (
     list_top_failed,
 )
 from backend.repositories.message import get_message
-from backend.schemas.feedback import FailedQuestion, FeedbackCreate, FeedbackResponse
+from backend.schemas.chat import FailedQuestion, FeedbackCreate, FeedbackResponse
 
 router = APIRouter(
     prefix="/feedback",

@@ -167,7 +167,7 @@ docker compose up -d --build
 
 - **Sale / Customer App**: `http://localhost:5173`
 - **Swagger API Docs**: `http://localhost:8000/docs`
-- **Default Accounts**:
+- **Default Accounts** (development only — never seeded when `APP_ENV` is a production value):
   - **Sale User**: `sale_test` / `pass1234`
   - **Admin User**: `admin_test` / `pass1234`
 
@@ -205,20 +205,27 @@ npm run dev
 P-110/
 ├── assets/                    # Project logos
 ├── backend/
-│   ├── ai/                    # Prompt engineering, citations, intent classification
+│   ├── ai/                    # Prompts, citations, intent, guardrails & price/commitment risk check
 │   ├── core/                  # Configuration, database engines, security, rate limiting
 │   ├── middleware/            # Request logging and Prometheus metrics
 │   ├── models/                # SQLAlchemy ORM models (User, Session, Message, Audit)
 │   ├── schemas/               # Pydantic schemas for request/response serialization
 │   ├── repositories/          # Abstracted data-access layer (Session, Message, Document)
-│   ├── services/              # Core business services:
-│   │   ├── agent_pipeline.py  # LangGraph Multi-Agent Orchestrator
-│   │   ├── verifier_service.py# Independent 3-axis LLM judge & feedback generator
-│   │   ├── risk_service.py    # Deterministic price & commitment detector
-│   │   ├── rag_service.py     # Hybrid retrieval, context selection, chunking
-│   │   ├── cache_service.py   # Semantic QA vector cache in Qdrant
-│   │   ├── reflection_memory.py # Self-correction lesson storage in Redis
-│   │   └── inventory_service.py # Live stock API client with slug mapping
+│   ├── services/              # Application services, grouped by capability:
+│   │   ├── chat/              # Answering a question
+│   │   │   ├── agent_pipeline.py      # LangGraph orchestrator
+│   │   │   ├── rag_service.py         # Hybrid retrieval and context selection
+│   │   │   ├── verifier_service.py    # Independent LLM judge & feedback generator
+│   │   │   ├── cache_service.py       # Semantic QA vector cache in Qdrant
+│   │   │   ├── memory_service.py      # Long-term customer preferences in Redis
+│   │   │   ├── reflection_memory.py   # Self-correction lessons in Redis
+│   │   │   ├── search_criteria.py     # Structured search criteria per session
+│   │   │   ├── inventory_service.py   # Live stock API client with slug mapping
+│   │   │   └── catalog_*/answer_images_service.py # Catalogue facts, offers, photos
+│   │   ├── documents/         # Knowledge base: parse, scan, classify, chunk, index, conflicts
+│   │   ├── leads/             # Lead scoring and customer summaries for the Sale handoff
+│   │   ├── billing_service.py # Plans, quotes and subscription requests
+│   │   └── news_service.py    # News drafts, review and publication
 │   ├── routers/               # FastAPI route controllers (Auth, Sale, Customer, Admin, HITL)
 │   ├── utils/                 # Shared helpers (text, time, phone, PII, VND)
 │   └── main.py                # Application entrypoint and lifespan management

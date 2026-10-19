@@ -328,6 +328,7 @@ def _popular_projects(db: Session, cutoff: datetime) -> list[PopularProjectMetri
     return [
         PopularProjectMetric(project_id=project_id, project_name=names.get(project_id, project_id), count=count)
         for project_id, count in rows
+        if project_id is not None  # already filtered in SQL; narrows the type for mypy
     ]
 
 

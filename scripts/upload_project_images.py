@@ -1,17 +1,17 @@
-"""Upload toan bo anh phan khu tu project-images-source/ len MinIO.
+"""Upload every subdivision image from project-images-source/ to MinIO.
 
-Nguon that cua cac anh mat bang/phoi canh/layout dung trong CategoryDetailPage
+The source of the floor-plan/perspective/layout images used by the catalogue pages
 (Zurich, Beverly, London, Paris, Sapphire, Senique Hanoi, Ocean View, Zenpark,
-Pavilion, Palma...) — cac anh nay KHONG nam trong bang `projects` (JSON details)
-nen khong di qua load_vinhomes_ocean_park.py, ma duoc code FE tro thang toi URL
-MinIO dang `http://<endpoint>/project-images/<slug>/<filename>`.
+Pavilion, Palma...) — these images are NOT in the `projects` table (JSON details), so
+they do not go through load_vinhomes_ocean_park.py; frontend code points straight at
+MinIO URLs of the form `http://<endpoint>/project-images/<slug>/<filename>`.
 
-Truoc day cac anh nay chi ton tai trong Docker volume MinIO tren 1 may (khong
-push len git duoc), nen dong nghiep clone repo ve se thay anh vo (404). Script
-nay giai quyet: chay 1 lan sau khi `docker compose up -d minio` de nap lai du
-lieu tu thu muc da commit trong repo.
+These images used to exist only in a MinIO Docker volume on one machine (they cannot be
+pushed to git), so teammates who cloned the repo saw broken images (404). This script
+fixes that: run it once after `docker compose up -d minio` to reload the data from the
+folder committed in the repo.
 
-Chay:
+Run:
     python scripts/upload_project_images.py
 """
 
@@ -33,7 +33,7 @@ def main() -> None:
     client = get_minio_client()
 
     if not SOURCE_DIR.exists():
-        print(f"[loi] Khong thay thu muc {SOURCE_DIR} — chua co anh nguon de upload.")
+        print(f"[error] Folder {SOURCE_DIR} not found; there are no source images to upload.")
         return
 
     uploaded = 0
@@ -46,11 +46,11 @@ def main() -> None:
         uploaded += 1
 
     if uploaded == 0:
-        print("[loi] Khong tim thay file anh nao trong project-images-source/.")
+        print("[error] No image files found in project-images-source/.")
         return
 
-    print(f"\nXong — da upload {uploaded} anh vao bucket '{settings.minio_bucket_project_images}'.")
-    print(f"Vi du kiem tra: {public_object_url(settings.minio_bucket_project_images, 'the-zurich')}...")
+    print(f"\nDone: uploaded {uploaded} images to bucket '{settings.minio_bucket_project_images}'.")
+    print(f"Spot check: {public_object_url(settings.minio_bucket_project_images, 'the-zurich')}...")
 
 
 if __name__ == "__main__":

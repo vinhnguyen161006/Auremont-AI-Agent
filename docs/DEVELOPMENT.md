@@ -1,36 +1,36 @@
 # Development Guide
 
-Hướng dẫn chi tiết cho việc chạy dự án ở dev mode, mock API tồn kho, migration và logging. Xem [`README.md`](../README.md) để biết Quick Start bằng Docker Compose.
+How to run the project in dev mode, use the mock inventory API, manage migrations and read the logs. See [`README.md`](../README.md) for the Docker Compose quick start.
 
-## Yêu cầu môi trường
+## Requirements
 
 - Python 3.11
-- Node.js 20+ và npm
-- Docker Desktop (nếu chạy bằng Docker Compose)
+- Node.js 20+ and npm
+- Docker Desktop (to run with Docker Compose)
 
-## Mock API tồn kho
+## Mock inventory API
 
-Tồn kho căn được tra **real-time qua HTTP**, không ingest vào Qdrant — số lượng căn thay đổi liên tục nên vector hoá sẽ trả lời số cũ. Giai đoạn build dùng mock API dựng trên [mockapi.io](https://mockapi.io) theo đúng shape của API nội bộ sẽ dùng ở production, nên khi đổi sang API thật chỉ cần sửa biến môi trường, không phải sửa code.
+Unit stock is looked up **in real time over HTTP**, never ingested into Qdrant — availability changes constantly, so vectorising it would answer with stale numbers. During the build phase a mock API on [mockapi.io](https://mockapi.io) uses the same shape as the internal production API, so switching to the real API only means changing environment variables, not code.
 
-**Bước 1 — Tạo resource trên mockapi.io**
+**Step 1 — Create the resource on mockapi.io**
 
-Tạo project mới, thêm resource tên `units` với các field dưới đây (mockapi tự thêm `id`, `lookup_inventory` sẽ bỏ qua field lạ này). Ba field bắt buộc để một bản ghi hợp lệ là `unit_code`, `project_id`, `status`; các field còn lại càng đầy đủ thì kết quả tư vấn càng chính xác:
+Create a project and add a resource named `units` with the fields below (mockapi adds its own `id`; `lookup_inventory` ignores unknown fields). Three fields are required for a record to be valid: `unit_code`, `project_id` and `status`. The more of the remaining fields are filled in, the more precise the advice:
 
-| Field | Kiểu | Ví dụ | Ghi chú |
+| Field | Type | Example | Notes |
 | :--- | :--- | :--- | :--- |
-| `unit_code` | string | `OP3-A-0203` | Mã căn |
-| `project_id` | string | `ocean-park-3` | Khớp `project_id` truyền vào khi tra cứu |
-| `subdivision` | string | `The Zenpark` | Phân khu của căn |
-| `tower` | string | `R1.03` | Tòa/tháp |
-| `floor` | string | `12` | Tầng; dùng string để giữ được giá trị như `12A` |
+| `unit_code` | string | `OP3-A-0203` | Unit code |
+| `project_id` | string | `ocean-park-3` | Matches the `project_id` passed to the lookup |
+| `subdivision` | string | `The Zenpark` | Subdivision of the unit |
+| `tower` | string | `R1.03` | Tower |
+| `floor` | string | `12` | Floor; a string so values like `12A` survive |
 | `unit_type` | string | `2PN` | `1PN`…`10PN`, `Penthouse`, `Studio`, `Shophouse`, `Duplex` |
-| `area_m2` | number | `68.2` | Diện tích m² |
-| `direction` | string | `Đông Nam` | Hướng căn/hướng ban công theo quy ước của nguồn |
-| `view_type` | string hoặc array | `["Hồ", "Cảnh quan nội khu"]` | Một hoặc nhiều loại view; chuỗi có thể phân tách bằng `,`, `|`, `/` |
-| `price` | number | `3600000000` | VND. Nhận cả chuỗi `"3600000000"` |
+| `area_m2` | number | `68.2` | Area in m² |
+| `direction` | string | `Đông Nam` | Unit/balcony orientation, as the source names it |
+| `view_type` | string or array | `["Hồ", "Cảnh quan nội khu"]` | One or more views; a string may be separated by `,`, `|` or `/` |
+| `price` | number | `3600000000` | VND. The string `"3600000000"` is accepted too |
 | `status` | string | `available` | `available` / `reserved` / `sold` |
 
-Endpoint trả về một JSON array:
+The endpoint returns a JSON array:
 
 ```json
 [
@@ -42,35 +42,35 @@ Endpoint trả về một JSON array:
 ]
 ```
 
-**Bước 2 — Trỏ `.env` vào endpoint**
+**Step 2 — Point `.env` at the endpoint**
 
 ```bash
 INVENTORY_API_URL=https://<project-id>.mockapi.io/units
 INVENTORY_API_KEY=
 ```
 
-> Tên biến phải đúng là `INVENTORY_API_URL`. `Settings` đặt `extra="ignore"` (`backend/core/config.py`), nên gõ sai tên (vd. `INVENTORY_MOCK_API`) sẽ **không báo lỗi** — biến bị bỏ qua im lặng và tra cứu luôn thất bại với thông báo "INVENTORY_API_URL chưa được cấu hình".
+> The variable must be named exactly `INVENTORY_API_URL`. `Settings` uses `extra="ignore"` (`backend/core/config.py`), so a misspelled name (e.g. `INVENTORY_MOCK_API`) raises **no error** — it is silently ignored and every lookup fails with "INVENTORY_API_URL is not configured".
 
-`INVENTORY_API_KEY` để trống với mockapi.io. Khi có giá trị, nó được gửi kèm dưới dạng header `Authorization: Bearer <key>` — dành cho API nội bộ ở production.
+Leave `INVENTORY_API_KEY` empty for mockapi.io. When it is set, it is sent as an `Authorization: Bearer <key>` header — intended for the internal production API.
 
-**Bước 3 — Kiểm tra**
+**Step 3 — Check it**
 
 ```bash
-python -c "from backend.services.inventory_service import lookup_inventory; print(lookup_inventory('ocean-park-3', 'Còn căn 2PN nào trống không?'))"
+python -c "from backend.services.chat.inventory_service import lookup_inventory; print(lookup_inventory('ocean-park-3', 'Còn căn 2PN nào trống không?'))"
 
-# hoặc unit test (không cần mạng, đã mock sẵn httpx)
+# or the unit tests (no network needed; httpx is mocked)
 pytest tests/test_services/test_inventory_service.py -v
 ```
 
-**Cách hàm hoạt động** — `lookup_inventory(project_id, query)` trong `backend/services/inventory_service.py`:
+**How it works** — `lookup_inventory(project_id, query)` in `backend/services/chat/inventory_service.py`:
 
-- Gửi `project_id` làm query param, timeout 5 giây.
-- Đọc loại căn ngay trong câu hỏi tự nhiên của Sale ("còn căn **2PN** không") và lọc theo đó; không nhắc loại căn nào thì trả cả bảng hàng.
-- **Không còn căn khớp → trả về `[]`**, đây là câu trả lời hợp lệ ("hết căn 2PN").
-- **Không gọi được API → raise `InventoryApiError`**, để pipeline hiển thị "Tạm thời không tra được tồn kho". Hai trường hợp này tách bạch: gộp lại sẽ báo lỗi hệ thống trong khi thực chất chỉ là hết hàng.
-- Record thiếu field bắt buộc bị bỏ qua thay vì làm hỏng cả lần tra cứu.
+- Sends `project_id` as a query parameter, with a short timeout inside the chat latency budget.
+- Reads the unit type from the Sale's natural-language question ("còn căn **2PN** không") and filters on it; with no unit type mentioned, it returns the whole stock list.
+- **No matching unit → returns `[]`**, which is a valid answer ("2PN is sold out").
+- **API unreachable → raises `InventoryApiError`**, so the pipeline shows "stock cannot be looked up right now". The two cases are kept apart: merging them would report a system failure when the units are simply sold out.
+- A record missing a required field is skipped instead of failing the whole lookup.
 
-## Chạy thủ công (dev mode, hot reload)
+## Running by hand (dev mode, hot reload)
 
 **Backend (FastAPI)**
 
@@ -79,76 +79,76 @@ python -m venv .venv
 source .venv/bin/activate          # Windows PowerShell: .venv\Scripts\Activate.ps1
 
 pip install -r requirements.txt
-alembic upgrade head               # BẮT BUỘC trước lần chạy đầu
+alembic upgrade head               # REQUIRED before the first run
 
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-# hoặc: make run
+# or: make run
 ```
 
-> Chạy bằng Docker Compose thì không cần `alembic upgrade head` thủ công — container tự chạy migration lúc khởi động (`docker-entrypoint.sh`).
+> With Docker Compose there is no need to run `alembic upgrade head` by hand — the container applies migrations on startup (`docker-entrypoint.sh`).
 
-**Ảnh dự án**
+**Project images**
 
-Ảnh mặt bằng/phối cảnh dùng trong trang "Chung cư" không nằm trong DB — code trỏ thẳng URL MinIO dạng `http://localhost:9000/project-images/<slug>/<file>`. Ảnh gốc (~58MB) không nằm trong git; backend tự tải về MinIO lúc khởi động (`backend/core/bootstrap_data.py`) theo `PROJECT_IMAGES_BASE_URL`/`PROJECT_IMAGES_ARCHIVE_URL` khai trong `.env`, dùng danh sách trong `seed-data/project_images_manifest.json`. Không cần chạy script thủ công hay có sẵn thư mục ảnh gốc nào ngoài repo — chỉ cần biến môi trường đúng và có mạng lúc khởi động lần đầu.
+The floor-plan and perspective images on the catalogue pages are not stored in the database; the frontend loads them from the public image bucket (`PROJECT_IMAGES_BASE_URL`). The original images (~58 MB) are not in git. On startup the backend also mirrors them into MinIO (`backend/core/bootstrap_data.py`) from `PROJECT_IMAGES_BASE_URL`/`PROJECT_IMAGES_ARCHIVE_URL` in `.env`, using the list in `seed-data/project_images_manifest.json`. No manual script or local image folder is needed — only the right environment variables and network access on the first start.
 
 **Frontend (React + Vite)**
 
 ```bash
 cd frontend
 npm install
-npm run dev          # dev server tại http://localhost:5173
-npm run build         # build production vào frontend/dist
-npm run preview        # xem thử bản build
-npm run lint             # oxlint
+npm run dev          # dev server at http://localhost:5173
+npm run build        # production build into frontend/dist
+npm run preview      # preview the build
+npm run lint         # oxlint
 ```
 
-## Migration cơ sở dữ liệu (Alembic)
+## Database migrations (Alembic)
 
-Schema do Alembic quản lý, **không** dùng `Base.metadata.create_all`: `create_all` chỉ tạo bảng còn thiếu và không bao giờ `ALTER` bảng đã tồn tại, nên cột thêm sau sẽ âm thầm vắng mặt cho tới khi có query nổ lỗi lúc chạy.
+The schema is managed by Alembic and **not** by `Base.metadata.create_all`: `create_all` only creates missing tables and never `ALTER`s an existing one, so a column added later silently goes missing until a query fails at runtime.
 
 ```bash
-alembic upgrade head                              # đưa DB lên bản mới nhất
-alembic revision --autogenerate -m "mô tả"        # sinh migration sau khi sửa model
-alembic downgrade -1                              # lùi 1 bước
-alembic current                                   # DB đang ở revision nào
-alembic check                                     # model có lệch migration không
+alembic upgrade head                              # bring the database to the latest revision
+alembic revision --autogenerate -m "description"  # generate a migration after changing a model
+alembic downgrade -1                              # step back one revision
+alembic current                                   # which revision the database is at
+alembic check                                     # do the models drift from the migrations?
 ```
 
-Sau khi sửa bất kỳ file nào trong `backend/models/`, **phải** tạo revision mới — `tests/test_migrations.py` sẽ fail nếu quên.
+After changing any file in `backend/models/` you **must** create a new revision — `tests/test_migrations.py` fails if you forget.
 
-DB đã có sẵn bảng từ trước (tạo bằng `create_all`) thì đánh dấu một lần thay vì chạy upgrade: `alembic stamp head`.
+A database whose tables already exist (created earlier with `create_all`) is marked once instead of upgraded: `alembic stamp head`.
 
 ## Testing
 
-Bộ test chia 3 tầng:
+The test suite has three tiers:
 
-| Tầng | Đường dẫn | Cần gì | Kiểm cái gì |
+| Tier | Path | Needs | Checks |
 | :--- | :--- | :--- | :--- |
-| Unit / API | `tests/test_api/` | Không | Từng endpoint trên SQLite in-memory |
-| Migration | `tests/test_migrations.py` | Không | Migration khớp model, không drift |
-| E2E | `tests/test_e2e/` | `docker compose up -d` | Hành trình Sale/Admin trên MySQL thật |
+| Unit / API | `tests/test_api/`, `tests/test_services/`, `tests/test_core/` | Nothing | Endpoints and services on in-memory SQLite |
+| Migration | `tests/test_migrations.py` | Nothing | Migrations match the models, no drift |
+| E2E | `tests/test_e2e/` | `docker compose up -d` | Sale/Admin journeys against real MySQL |
 
 ```bash
-pytest tests/test_api tests/test_migrations   # nhanh, không cần Docker
-docker compose up -d && pytest tests/test_e2e # E2E trên stack thật
+pytest tests/test_api tests/test_migrations.py   # fast, no Docker needed
+docker compose up -d && pytest tests/test_e2e    # E2E against the real stack
 ```
 
-E2E tự **skip** nếu backend chưa chạy, nên `pytest tests/` luôn an toàn.
+E2E tests **skip** themselves when the backend is not running, so `pytest tests/` is always safe.
 
 ```bash
-make test        # pytest tests/ -v
-make lint        # ruff check backend/ tests/
-make format      # ruff format backend/ tests/
+make test        # pytest with a 70% coverage floor
+make lint        # ruff check backend/ tests/ eval/
+make format      # ruff format backend/ tests/ eval/
 make typecheck   # mypy backend/
-make check       # lint + format + test
-make clean       # xóa cache __pycache__, .pytest_cache, .ruff_cache
+make check       # lint + format + typecheck + test
+make clean       # remove __pycache__, .pytest_cache, .ruff_cache
 ```
 
-## Truy cập sau khi chạy
+## Access after startup
 
-| Thành phần | URL | Thông tin đăng nhập |
+| Component | URL | Credentials |
 | :--- | :--- | :--- |
-| Frontend | `http://localhost:5173` | `sale_test` / `pass1234` — `admin_test` / `pass1234` |
+| Frontend | `http://localhost:5173` | `sale_test` / `pass1234` — `admin_test` / `pass1234` (development only) |
 | Backend API | `http://localhost:8000` | — |
 | Swagger UI | `http://localhost:8000/docs` | — |
 | Health check | `http://localhost:8000/health` | — |
@@ -157,19 +157,21 @@ make clean       # xóa cache __pycache__, .pytest_cache, .ruff_cache
 | MySQL | `localhost:3306` | `salesmate` / `salesmate` (db: `salesmate_db`) |
 | Redis (long-term memory) | `localhost:6379` | — (`redis-cli KEYS "memory:*"`) |
 
-Backend tự seed 2 tài khoản mỗi lần khởi động (`SEED_USERS` trong `backend/main.py`), nên máy nào clone repo về rồi `docker compose up` cũng đăng nhập được ngay. Seed là **idempotent**: tài khoản đã tồn tại thì được đặt lại mật khẩu/role/trạng thái active về đúng bảng trên. Muốn thêm tài khoản dùng chung thì bổ sung vào `SEED_USERS` — email phải là tên miền hợp lệ với `EmailStr` (tránh `.local`, `.test`), nếu không `/auth/login` sẽ lỗi 500 lúc serialize response.
+Outside production, the backend seeds two test accounts on every start (`SEED_USERS` in `backend/core/seed.py`), so anyone who clones the repo and runs `docker compose up` can log in straight away. Seeding is **idempotent**: an existing account is reset to the password/role/active state above. It **never** runs when `APP_ENV` is a production value — these passwords are public. Shared accounts added to `SEED_USERS` need an email domain that `EmailStr` accepts (avoid `.local`, `.test`), or `/auth/login` fails with a 500 while serialising the response.
 
-## Logging & Observability
+`/auth/login` allows 10 attempts per client address every 5 minutes (`backend/core/rate_limit.py`); a few wrong passwords in a row during development can trip it, and a backend restart resets it.
 
-Backend ghi log **JSON có cấu trúc ra stdout** (một dòng = một record), nên `docker logs`, Loki hay CloudWatch đọc được ngay mà không cần parser riêng.
+## Logging & observability
 
-| Biến | Mặc định | Ý nghĩa |
+The backend writes **structured JSON logs to stdout** (one line per record), so `docker logs`, Loki or CloudWatch can read them without a custom parser.
+
+| Variable | Default | Meaning |
 | :--- | :--- | :--- |
-| `LOG_LEVEL` | `INFO` | Ngưỡng log. `DEBUG` sẽ hiện thêm `/health` và các chi tiết phụ. |
-| `LOG_JSON` | *(tự chọn)* | Bỏ trống: JSON ở production, text dễ đọc ở development. Đặt `true`/`false` để ép. |
-| `LOG_QUERY_TEXT` | `true` | Ghi 200 ký tự đầu câu hỏi của Sale vào audit log. |
+| `LOG_LEVEL` | `INFO` | Log threshold. `DEBUG` also shows `/health` and minor details. |
+| `LOG_JSON` | *(automatic)* | Empty: JSON in production, readable text in development. Set `true`/`false` to force. |
+| `LOG_QUERY_TEXT` | `true` | Record the start of each chat question in the audit log, with phone numbers and emails redacted. |
 
-Mỗi request được gán `request_id` (hoặc dùng lại `X-Request-ID` client gửi lên) và trả về trong response header:
+Every request gets a `request_id` (or reuses the `X-Request-ID` the client sent), returned in the response headers:
 
 ```bash
 docker compose logs backend | grep <request_id> | jq .
@@ -177,14 +179,14 @@ docker compose logs backend | jq 'select(.event=="pipeline.crash")'
 docker compose logs backend | jq 'select(.event=="sale.query" and .verifier_score < 0.7)'
 ```
 
-Audit event (nghiệp vụ) ghi trên logger `salesmate.audit`, ghim cứng ở mức INFO — đặt `LOG_LEVEL=WARNING` để giảm nhiễu cũng không làm mất audit trail: `auth.login.success/.failure`, `auth.logout`, `document.upload`, `document.ingest.success/.blocked/.failure`, `sale.query`, `hitl.confirm`.
+Business audit events go to the `salesmate.audit` logger, pinned at INFO — setting `LOG_LEVEL=WARNING` to cut noise does not lose the audit trail: `auth.login.success/.failure`, `auth.logout`, `document.upload`, `document.ingest.success/.blocked/.failure`, `sale.query`, `hitl.confirm`.
 
-**Không bao giờ được log** (có test canh giữ trong `tests/test_api/test_audit_events.py` và `tests/test_services/test_silent_failures_logged.py`): mật khẩu/JWT/API key (`RedactingFilter` tự che), câu trả lời AI sinh ra (chỉ log điểm số), `confirmed_content` của HITL (chỉ log `content_len` + `edited`), giá trị input gây lỗi 422, nội dung file upload. Response 500 chỉ trả `{"detail": "Internal server error", "request_id": "..."}`.
+**Never logged** (guarded by `tests/test_api/test_audit_events.py` and `tests/test_services/test_silent_failures_logged.py`): passwords/JWTs/API keys (`RedactingFilter` masks them), AI-generated answers (only scores are logged), HITL `confirmed_content` (only `content_len` + `edited`), input values that caused a 422, uploaded file contents. A 500 response only returns `{"detail": "Internal server error", "request_id": "..."}`.
 
-## Nguồn tham khảo dữ liệu / API mock
+## Data and mock API sources
 
-| Hạng mục | Nguồn |
+| Item | Source |
 | :--- | :--- |
-| File PDF Chính sách bán hàng | `market-files.vinhomes.vn` — tra cứu Google: `site:vinhomes.vn "chính sách bán hàng" filetype:pdf` |
-| Hình ảnh Mặt bằng & Tiện ích | `rever.vn`, `batdongsan.com.vn` hoặc website chính thức của dự án |
-| API tồn kho | Mock API — `mockapi.io` (xem mục "Mock API tồn kho" ở trên) |
+| Sales policy PDFs | `market-files.vinhomes.vn` — Google search: `site:vinhomes.vn "chính sách bán hàng" filetype:pdf` |
+| Floor plans & amenities images | `rever.vn`, `batdongsan.com.vn` or the project's official website |
+| Inventory API | Mock API — `mockapi.io` (see "Mock inventory API" above) |

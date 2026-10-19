@@ -14,9 +14,9 @@ of hallucinating?), not the quality of Gemini's prose.
 
 import pytest
 
-from backend.services import agent_pipeline
-from backend.services.inventory_service import InventoryApiError
-from backend.services.verifier_service import FailureMode, NextAction, VerifierResult
+from backend.services.chat import agent_pipeline
+from backend.services.chat.inventory_service import InventoryApiError
+from backend.services.chat.verifier_service import FailureMode, NextAction, VerifierResult
 from eval.golden_dataset import GOLDEN_CASES, GoldenCase
 
 

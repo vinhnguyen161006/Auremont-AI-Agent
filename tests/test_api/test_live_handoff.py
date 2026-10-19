@@ -19,9 +19,10 @@ from backend.repositories.chat_session import (
     list_sessions_for_sale,
 )
 from backend.repositories.message import create_message
-from backend.schemas.customer_summary import CustomerNeeds, CustomerSummaryMetadata, CustomerSummarySnapshot
-from backend.services import agent_pipeline, customer_summary_service
-from backend.services.agent_pipeline import PipelineResult
+from backend.schemas.customer import CustomerNeeds, CustomerSummaryMetadata, CustomerSummarySnapshot
+from backend.services.chat import agent_pipeline
+from backend.services.chat.agent_pipeline import PipelineResult
+from backend.services.leads import customer_summary_service
 
 
 @pytest.fixture

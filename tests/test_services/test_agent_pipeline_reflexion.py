@@ -8,8 +8,8 @@ the Verifier's specific complaint back into the next attempt. What makes that re
 """
 
 from backend.ai import prompts
-from backend.services import agent_pipeline
-from backend.services.verifier_service import FailureMode, NextAction, VerifierResult
+from backend.services.chat import agent_pipeline
+from backend.services.chat.verifier_service import FailureMode, NextAction, VerifierResult
 
 QUERY = "Gia can 2PN va tien do thanh toan the nao?"
 DOCS = [{"document_id": 1, "title": "bang-gia.pdf", "page": 2, "content": "Can 2PN tu 3,6 ty dong."}]
@@ -41,7 +41,7 @@ def _run(monkeypatch, *, verdicts: list[VerifierResult]) -> list[str]:
     monkeypatch.setattr(agent_pipeline.cache_service, "lookup_cache", lambda *a, **k: None)
     monkeypatch.setattr(agent_pipeline, "_store_cache", lambda *a, **k: None)
     monkeypatch.setattr(agent_pipeline, "query_needs_inventory", lambda query: False)
-    monkeypatch.setattr(agent_pipeline.risk_service, "detect_commitment_risk", lambda answer: False)
+    monkeypatch.setattr(agent_pipeline.guardrails, "detect_commitment_risk", lambda answer: False)
 
     def _generate_json(prompt, schema, system_instruction=None, **_kwargs):
         prompts_seen.append(prompt)
@@ -59,7 +59,7 @@ def _run(monkeypatch, *, verdicts: list[VerifierResult]) -> list[str]:
 
 
 def test_rejection_reason_reaches_the_regeneration_prompt(monkeypatch):
-    """Lan sinh lai phai duoc biet lan truoc sai o dau — day la diem cot loi cua Reflexion."""
+    """The regeneration must know what the previous attempt got wrong — that is the core of Reflexion."""
     seen = _run(monkeypatch, verdicts=[_verdict(0.3), _verdict(0.9)])
 
     assert len(seen) == 2
@@ -69,7 +69,7 @@ def test_rejection_reason_reaches_the_regeneration_prompt(monkeypatch):
 
 
 def test_first_attempt_carries_no_correction_block(monkeypatch):
-    """Chua co gi de sua thi prompt phai y het truoc khi co Reflexion."""
+    """With nothing to correct, the prompt must be identical to the one before Reflexion existed."""
     seen = _run(monkeypatch, verdicts=[_verdict(0.9)])
 
     assert len(seen) == 1
@@ -77,14 +77,14 @@ def test_first_attempt_carries_no_correction_block(monkeypatch):
 
 
 def test_correction_block_still_forbids_inventing_data(monkeypatch):
-    """Suc ep phai sua khong duoc tro thanh suc ep bia them cho du y."""
+    """Pressure to fix must not turn into pressure to invent more content."""
     seen = _run(monkeypatch, verdicts=[_verdict(0.3), _verdict(0.9)])
 
     assert "chưa có dữ liệu" in seen[1]
 
 
 def test_decline_skips_the_retry_entirely(monkeypatch):
-    """Ngu canh khong he co du lieu thi sinh lai cung vo ich — dung tieu them mot lan goi LLM."""
+    """When the context has no data at all, regenerating is useless too — do not spend another LLM call."""
     seen = _run(
         monkeypatch,
         verdicts=[_verdict(0.2, failure_mode=FailureMode.MISSING_EVIDENCE, next_action=NextAction.DECLINE)],
@@ -101,12 +101,12 @@ def test_passing_score_overrides_a_contradictory_decline(monkeypatch):
 
 
 def test_all_three_scores_travel_out_of_the_pipeline(monkeypatch):
-    """Admin Tab 2 chart ba tieu chi rieng, nen ca ba phai ra duoc toi router."""
+    """Admin Tab 2 charts the three criteria separately, so all three must reach the router."""
     monkeypatch.setattr(agent_pipeline, "retrieve", lambda *a, **k: DOCS)
     monkeypatch.setattr(agent_pipeline.cache_service, "lookup_cache", lambda *a, **k: None)
     monkeypatch.setattr(agent_pipeline, "_store_cache", lambda *a, **k: None)
     monkeypatch.setattr(agent_pipeline, "query_needs_inventory", lambda query: False)
-    monkeypatch.setattr(agent_pipeline.risk_service, "detect_commitment_risk", lambda answer: False)
+    monkeypatch.setattr(agent_pipeline.guardrails, "detect_commitment_risk", lambda answer: False)
     monkeypatch.setattr(
         agent_pipeline, "generate_json", lambda _p, schema, **k: schema(text="- Can 2PN tu 3,6 ty dong.")
     )
@@ -125,7 +125,7 @@ def test_all_three_scores_travel_out_of_the_pipeline(monkeypatch):
 
 
 def test_incomplete_answer_is_blocked_even_when_grounded(monkeypatch):
-    """Bam sat ngu canh nhung thieu y van phai bi chan — gia tri cua tieu chi completeness."""
+    """Grounded but incomplete must still be blocked — that is what the completeness criterion is for."""
     seen = _run(
         monkeypatch,
         verdicts=[
@@ -137,12 +137,12 @@ def test_incomplete_answer_is_blocked_even_when_grounded(monkeypatch):
 
 
 def test_declined_answer_still_reports_why(monkeypatch):
-    """Cau tra loi bi tu choi la ca Admin can chan doan nhat — khong duoc mat ly do."""
+    """A declined answer is the one an Admin most needs to diagnose — the reason must not be lost."""
     monkeypatch.setattr(agent_pipeline, "retrieve", lambda *a, **k: DOCS)
     monkeypatch.setattr(agent_pipeline.cache_service, "lookup_cache", lambda *a, **k: None)
     monkeypatch.setattr(agent_pipeline, "_store_cache", lambda *a, **k: None)
     monkeypatch.setattr(agent_pipeline, "query_needs_inventory", lambda query: False)
-    monkeypatch.setattr(agent_pipeline.risk_service, "detect_commitment_risk", lambda answer: False)
+    monkeypatch.setattr(agent_pipeline.guardrails, "detect_commitment_risk", lambda answer: False)
     monkeypatch.setattr(
         agent_pipeline, "generate_json", lambda _p, schema, **k: schema(text="- Can 2PN tu 3,6 ty dong.")
     )
@@ -164,7 +164,7 @@ def test_declined_answer_still_reports_why(monkeypatch):
 
 
 def test_correction_is_the_last_block_in_the_prompt():
-    """Chi thi sua loi phai la thu cuoi cung model doc truoc khi viet."""
+    """The correction instruction must be the last thing the model reads before writing."""
     prompt = prompts.build_prompt(QUERY, DOCS, [], False, False, correction=COMPLAINT)
 
     assert prompt.rstrip().index(COMPLAINT) > prompt.index("NGỮ CẢNH TỪ TÀI LIỆU DỰ ÁN")

@@ -4,8 +4,8 @@ import httpx
 import pytest
 
 from backend.core.config import settings
-from backend.services import inventory_service
-from backend.services.inventory_service import (
+from backend.services.chat import inventory_service
+from backend.services.chat.inventory_service import (
     InventoryApiError,
     InventoryUnit,
     _apply_query_filters,
@@ -571,7 +571,7 @@ def test_omits_auth_header_when_no_api_key(mock_get):
 
 @patch("httpx.get")
 def test_empty_inventory_returns_empty_list(mock_get):
-    """Dự án hết sạch hàng là câu trả lời hợp lệ, không phải sự cố API."""
+    """A sold-out project is a valid answer, not an API failure."""
     mock_get.return_value = _response([])
 
     assert lookup_inventory("ocean-park-3", "còn căn nào không") == []
@@ -587,7 +587,7 @@ def test_no_matching_unit_type_returns_empty_list(mock_get):
 
 @patch("httpx.get")
 def test_skips_records_missing_required_fields(mock_get):
-    """Một dòng dữ liệu hỏng không được làm hỏng cả lần tra cứu."""
+    """One broken record must not break the whole lookup."""
     mock_get.return_value = _response(
         [
             {
@@ -672,7 +672,7 @@ def test_non_json_body_becomes_inventory_api_error(mock_get):
 
 @patch("httpx.get")
 def test_non_list_payload_becomes_inventory_api_error(mock_get):
-    """JSON hợp lệ nhưng là object — không lặp được thành danh sách căn."""
+    """Valid JSON, but an object — it cannot be iterated as a list of units."""
     mock_get.return_value = _response({"data": []})
 
     with pytest.raises(InventoryApiError, match="expected a list"):
@@ -688,7 +688,7 @@ def test_missing_config_becomes_inventory_api_error(monkeypatch):
 
 
 def test_resolve_uses_star_entry_when_session_has_no_project():
-    """Session không gắn dự án (form tạo phiên đã bỏ bước chọn dự án) vẫn tra được tồn kho."""
+    """A session with no project (the session form dropped the project step) can still look up stock."""
     with patch.object(settings, "inventory_project_map", "*=ocean-park-3"):
         assert resolve_api_project_id(None) == "ocean-park-3"
 
@@ -712,7 +712,7 @@ def test_resolve_prefers_exact_entry_over_star():
 
 
 def test_resolve_skips_malformed_entries_without_breaking_the_rest():
-    """Một cặp gõ sai không được làm hỏng ánh xạ của mọi dự án còn lại."""
+    """One mistyped pair must not break the mapping for every other project."""
     with patch.object(settings, "inventory_project_map", "rác, =x, y=, hai-au=ocean-park-2"):
         assert resolve_api_project_id("hai-au") == "ocean-park-2"
 
@@ -730,7 +730,7 @@ def test_lookup_without_project_id_uses_mapped_project(monkeypatch):
 
 
 def test_lookup_without_project_id_and_without_star_entry_raises():
-    """Không suy đoán bừa: không có dự án nào để tra thì báo lỗi thật, không trả tồn kho sai."""
+    """No guessing: with no project to look up, raise a real error rather than return the wrong stock."""
     with pytest.raises(InventoryApiError, match="No inventory project id"):
         lookup_inventory(None, "còn căn nào không")
 

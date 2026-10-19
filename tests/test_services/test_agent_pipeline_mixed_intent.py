@@ -1,8 +1,8 @@
 from types import SimpleNamespace
 
 from backend.ai import prompts
-from backend.services import agent_pipeline
-from backend.services.inventory_service import InventoryApiError, InventoryUnit
+from backend.services.chat import agent_pipeline
+from backend.services.chat.inventory_service import InventoryApiError, InventoryUnit
 
 
 def _policy_hit() -> dict:
@@ -152,8 +152,8 @@ def test_session_without_project_still_reaches_live_inventory(monkeypatch):
 
 
 def test_prompt_keeps_unavailable_notice_when_lookup_cannot_resolve_a_project(monkeypatch):
-    """Không resolve được dự án nào thì vẫn phải nói thẳng là không tra được tồn kho,
-    tuyệt đối không suy ra số căn từ tài liệu tĩnh."""
+    """When no project can be resolved the answer must still say plainly that stock could not
+    be looked up, and must never infer unit counts from static documents."""
     monkeypatch.setattr(
         agent_pipeline,
         "lookup_inventory",

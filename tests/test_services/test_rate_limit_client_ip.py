@@ -80,3 +80,13 @@ class TestBehindTwoProxies:
         request = _FakeRequest("10.0.0.1", forwarded="203.0.113.9")
 
         assert rate_limit._client_ip(request) == "203.0.113.9"
+
+
+def test_idle_buckets_are_dropped_once_too_many_are_tracked(monkeypatch):
+    monkeypatch.setattr(rate_limit, "_MAX_TRACKED_BUCKETS", 2)
+    for address in ("10.0.0.1", "10.0.0.2", "10.0.0.3"):
+        rate_limit._hits[f"anonymous:{address}"].append(-1_000_000.0)
+
+    rate_limit.anonymous_rate_limit(_FakeRequest("10.0.0.9"))
+
+    assert set(rate_limit._hits) == {"anonymous:10.0.0.9"}

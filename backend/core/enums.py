@@ -169,7 +169,7 @@ class LeadPurpose(StrEnum):
     """What the customer wants the property for.
 
     Values deliberately match the strings `SearchCriteria.purpose` already produces
-    (backend/services/search_criteria.py `_PURPOSE_PATTERNS`) — the regex extractor and the
+    (backend/services/chat/search_criteria.py `_PURPOSE_PATTERNS`) — the regex extractor and the
     LLM describe the same fact, and two vocabularies for one fact guarantees they disagree.
     UNKNOWN covers "nobody said yet", which is the common case early in a conversation.
     """

@@ -66,8 +66,8 @@ from pydantic import BaseModel
 
 from backend.core import gemini_client
 from backend.core.config import settings
-from backend.services import agent_pipeline
-from backend.services.inventory_service import InventoryApiError
+from backend.services.chat import agent_pipeline
+from backend.services.chat.inventory_service import InventoryApiError
 from backend.utils.text import strip_diacritics
 from eval.golden_dataset import GOLDEN_CASES, GoldenCase
 

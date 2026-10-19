@@ -10,9 +10,9 @@ import logging
 
 import pytest
 
-from backend.services import cache_service, verifier_service
-from backend.services.agent_pipeline import GENERATION_ERROR_MESSAGE, run_pipeline
-from backend.services.inventory_service import _parse_unit, _to_float
+from backend.services.chat import cache_service, verifier_service
+from backend.services.chat.agent_pipeline import GENERATION_ERROR_MESSAGE, run_pipeline
+from backend.services.chat.inventory_service import _parse_unit, _to_float
 
 
 class _SimulatedError(Exception):
@@ -26,7 +26,7 @@ def _raise(*args, **kwargs):
 def test_cache_lookup_failure_is_logged_and_returns_a_miss(monkeypatch, caplog):
     monkeypatch.setattr(cache_service, "get_qdrant_client", _raise)
 
-    with caplog.at_level(logging.WARNING, logger="backend.services.cache_service"):
+    with caplog.at_level(logging.WARNING, logger="backend.services.chat.cache_service"):
         result = cache_service.lookup_cache("gia can 2PN?", "ocean-park-3")
 
     assert result is None
@@ -38,7 +38,7 @@ def test_cache_lookup_failure_is_logged_and_returns_a_miss(monkeypatch, caplog):
 def test_cache_store_failure_is_logged_and_swallowed(monkeypatch, caplog):
     monkeypatch.setattr(cache_service, "_ensure_cache_collection", _raise)
 
-    with caplog.at_level(logging.WARNING, logger="backend.services.cache_service"):
+    with caplog.at_level(logging.WARNING, logger="backend.services.chat.cache_service"):
         assert cache_service.store_cache("q", "a", [], 0.9, "ocean-park-3") is None
 
     assert any(getattr(r, "event", None) == "cache.store.failed" for r in caplog.records)
@@ -48,7 +48,7 @@ def test_judge_failure_is_logged_at_error_and_still_fails_closed(monkeypatch, ca
     """A broken Verifier and a bad answer both score 0.0 - only the log separates them."""
     monkeypatch.setattr(verifier_service, "generate_json", _raise)
 
-    with caplog.at_level(logging.ERROR, logger="backend.services.verifier_service"):
+    with caplog.at_level(logging.ERROR, logger="backend.services.chat.verifier_service"):
         result = verifier_service.score_answer("gia?", "3.6 ty", ["context"])
 
     assert result.score == 0.0
@@ -62,7 +62,7 @@ def test_a_judge_with_no_verdict_is_logged_and_fails_closed(monkeypatch, caplog)
     than unparseable prose. It must still fail closed and still leave a trace."""
     monkeypatch.setattr(verifier_service, "generate_json", lambda *a, **k: None)
 
-    with caplog.at_level(logging.WARNING, logger="backend.services.verifier_service"):
+    with caplog.at_level(logging.WARNING, logger="backend.services.chat.verifier_service"):
         result = verifier_service.score_answer("gia?", "3.6 ty", ["context"])
 
     assert result.score == 0.0
@@ -93,7 +93,7 @@ def test_the_weaker_dimension_decides_the_score():
 
 def test_pipeline_crash_is_logged_and_still_returns_the_standard_message(monkeypatch, caplog):
     """The single most valuable log line: without it a crash is entirely invisible."""
-    import backend.services.agent_pipeline as pipeline
+    import backend.services.chat.agent_pipeline as pipeline
 
     class _ExplodingGraph:
         def invoke(self, _state):
@@ -101,7 +101,7 @@ def test_pipeline_crash_is_logged_and_still_returns_the_standard_message(monkeyp
 
     monkeypatch.setattr(pipeline, "_get_graph", lambda: _ExplodingGraph())
 
-    with caplog.at_level(logging.ERROR, logger="backend.services.agent_pipeline"):
+    with caplog.at_level(logging.ERROR, logger="backend.services.chat.agent_pipeline"):
         result = run_pipeline("gia can 2PN?", project_id="ocean-park-3")
 
     assert result.draft_answer == GENERATION_ERROR_MESSAGE
@@ -129,7 +129,7 @@ def test_rejected_token_is_logged_without_ever_including_the_token(caplog):
 
 
 def test_unparseable_price_is_logged_at_debug_and_left_blank(caplog):
-    with caplog.at_level(logging.DEBUG, logger="backend.services.inventory_service"):
+    with caplog.at_level(logging.DEBUG, logger="backend.services.chat.inventory_service"):
         assert _to_float("not-a-number") is None
 
     assert any(getattr(r, "event", None) == "inventory.price.unparseable" for r in caplog.records)
@@ -137,7 +137,7 @@ def test_unparseable_price_is_logged_at_debug_and_left_blank(caplog):
 
 def test_incomplete_inventory_record_logs_field_names_only(caplog):
     """Unit codes and prices are business data; only the missing field names are safe."""
-    with caplog.at_level(logging.WARNING, logger="backend.services.inventory_service"):
+    with caplog.at_level(logging.WARNING, logger="backend.services.chat.inventory_service"):
         assert _parse_unit({"unit_code": "OP3-A-0203", "price": 3600000000}) is None
 
     record = next(r for r in caplog.records if getattr(r, "event", None) == "inventory.record.incomplete")
@@ -147,7 +147,7 @@ def test_incomplete_inventory_record_logs_field_names_only(caplog):
 
 
 def test_non_dict_inventory_record_is_logged(caplog):
-    with caplog.at_level(logging.WARNING, logger="backend.services.inventory_service"):
+    with caplog.at_level(logging.WARNING, logger="backend.services.chat.inventory_service"):
         assert _parse_unit("just a string") is None
 
     assert any(getattr(r, "event", None) == "inventory.record.not_dict" for r in caplog.records)

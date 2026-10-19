@@ -17,8 +17,8 @@ import pytest
 
 pytest.importorskip("deepeval", reason="deepeval is in requirements-eval.txt, not requirements.txt")
 
-from backend.services import agent_pipeline  # noqa: E402
-from backend.services.verifier_service import FailureMode, NextAction, VerifierResult  # noqa: E402
+from backend.services.chat import agent_pipeline  # noqa: E402
+from backend.services.chat.verifier_service import FailureMode, NextAction, VerifierResult  # noqa: E402
 from eval import deepeval_suite  # noqa: E402
 from eval.golden_dataset import GOLDEN_CASES  # noqa: E402
 

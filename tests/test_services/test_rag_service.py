@@ -8,7 +8,7 @@ from backend.core.config import settings
 from backend.core.enums import DocumentVisibility
 from backend.core.gemini_client import GeminiEmbeddingError
 from backend.core.sparse_embedding import embed_documents_sparse
-from backend.services import rag_service
+from backend.services.chat import rag_service
 
 
 class FakeQdrantClient:
@@ -179,7 +179,7 @@ def test_retrieval_excludes_unclassified_other_documents(qdrant):
 
 
 def test_overfetches_before_reranking(qdrant):
-    """Phải lấy dư rồi mới cắt, nếu không re-rank chỉ xáo lại đúng tập đã bị cắt."""
+    """Over-fetch before cutting, otherwise re-ranking only reshuffles an already truncated set."""
     rag_service.retrieve("giá căn hộ", DocumentVisibility.INTERNAL, top_k=5)
 
     call = qdrant.query_calls[0]
@@ -228,7 +228,7 @@ def test_skips_points_without_content(qdrant):
 
 
 def test_identifier_match_outranks_higher_vector_score(qdrant):
-    """'2PN' và '3PN' gần như trùng vector; từ khoá là thứ duy nhất tách được hai loại căn."""
+    """'2PN' and '3PN' have almost identical vectors; the keyword is the only thing that separates them."""
     qdrant.points = [
         _point("Căn 3PN diện tích lớn, giá 5.2 tỷ.", score=0.90, document_id=1),
         _point("Căn 2PN giá 3.6 tỷ.", score=0.86, document_id=2),
@@ -381,7 +381,7 @@ def test_cohere_rerank_receives_query_and_contents(cohere_rerank, qdrant):
 
 
 def test_cohere_rerank_score_replaces_vector_score(cohere_rerank, qdrant):
-    """Điểm trả về là relevance của cross-encoder, không phải cosine đã rescale."""
+    """The returned score is the cross-encoder's relevance, not a rescaled cosine."""
     qdrant.points = [_point("Giá căn 2PN là 3.6 tỷ.", score=0.60, document_id=2)]
 
     result = rag_service.retrieve("Giá căn 2PN?", DocumentVisibility.INTERNAL)
@@ -515,7 +515,7 @@ def test_qdrant_failure_becomes_retrieval_error(qdrant, monkeypatch):
 
 
 def test_filter_is_a_qdrant_filter_object(qdrant):
-    """Giữ đúng kiểu của qdrant-client để không vỡ khi nâng version."""
+    """Keep qdrant-client's own types so a version upgrade does not break this."""
     rag_service.retrieve("giá căn hộ", DocumentVisibility.INTERNAL)
 
     assert isinstance(qdrant.query_calls[0]["query_filter"], models.Filter)
@@ -543,7 +543,7 @@ def test_hybrid_query_builds_prefetch_and_rrf_fusion(hybrid_qdrant):
 
 
 def test_hybrid_applies_rbac_filter_to_every_branch(hybrid_qdrant):
-    """Lọc sau khi hợp nhất là quá muộn — nhánh đã xếp hạng bằng tài liệu không được đọc."""
+    """Filtering after the merge is too late — a branch has already ranked with documents the caller may not read."""
     rag_service.retrieve("giá căn hộ", DocumentVisibility.PUBLIC, project_id="the-palma")
 
     call = hybrid_qdrant.query_calls[0]
@@ -605,7 +605,7 @@ def test_disabled_flag_never_embeds_the_sparse_query(qdrant, monkeypatch):
 def live_qdrant(monkeypatch):
     from qdrant_client import QdrantClient
 
-    from backend.services import vector_store_service
+    from backend.services.documents import vector_store_service
 
     client = QdrantClient(":memory:")
     monkeypatch.setattr(rag_service, "get_qdrant_client", lambda: client)
@@ -614,7 +614,7 @@ def live_qdrant(monkeypatch):
     monkeypatch.setattr(settings, "embedding_dimensions", 3)
     monkeypatch.setattr(rag_service, "embed_query", lambda query: [1.0, 0.0, 0.0])
 
-    from backend.services.chunking_service import DocumentChunk
+    from backend.services.documents.chunking_service import DocumentChunk
 
     vector_store_service.index_document_chunks(
         document_id=1,
@@ -659,8 +659,8 @@ def test_live_project_filter_excludes_other_projects(live_qdrant):
 
 
 def test_live_project_scope_also_includes_global_documents(live_qdrant):
-    from backend.services import vector_store_service
-    from backend.services.chunking_service import DocumentChunk
+    from backend.services.documents import vector_store_service
+    from backend.services.documents.chunking_service import DocumentChunk
 
     vector_store_service.index_document_chunks(
         document_id=3,
@@ -680,7 +680,7 @@ def test_live_project_scope_also_includes_global_documents(live_qdrant):
 
 
 def test_live_carries_page_for_citation(live_qdrant):
-    """Không có page thì bước Generate không trích nguồn tới số trang được."""
+    """Without the page, the Generate step cannot cite down to the page number."""
     result = rag_service.retrieve("Giá căn 2PN?", DocumentVisibility.INTERNAL, project_id="ocean-park-3")
 
     assert result[0]["page"] == 2
@@ -689,15 +689,15 @@ def test_live_carries_page_for_citation(live_qdrant):
 
 @pytest.fixture
 def live_hybrid_qdrant(monkeypatch):
-    """Hai tài liệu dựng riêng cho phép so sánh trực tiếp hybrid với dense-only.
+    """Two purpose-built documents allow a direct comparison of hybrid against dense-only.
 
-    Tài liệu 1 nằm đúng hướng vector truy vấn nhưng KHÔNG chứa mã căn được hỏi.
-    Tài liệu 2 lệch hướng vector nhưng chứa đúng mã đó — chỉ BM25 mới thấy được.
+    Document 1 lies right along the query vector but does NOT contain the requested unit code.
+    Document 2 points elsewhere but contains exactly that code — only BM25 can see it.
     """
     from qdrant_client import QdrantClient
 
-    from backend.services import vector_store_service
-    from backend.services.chunking_service import DocumentChunk
+    from backend.services.documents import vector_store_service
+    from backend.services.documents.chunking_service import DocumentChunk
 
     client = QdrantClient(":memory:")
     monkeypatch.setattr(rag_service, "get_qdrant_client", lambda: client)
@@ -758,7 +758,7 @@ def test_live_rrf_promotes_exact_keyword_match(live_hybrid_qdrant, monkeypatch):
 
 
 def test_live_hybrid_still_enforces_rbac(live_hybrid_qdrant, monkeypatch):
-    """Thêm một kênh truy vấn không được phép mở thêm đường vòng qua RBAC."""
+    """Adding a query channel must not open a way around RBAC."""
     monkeypatch.setattr(settings, "hybrid_search_enabled", True)
     monkeypatch.setattr(settings, "rerank_enabled", False)
 

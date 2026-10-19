@@ -9,6 +9,10 @@ services:
     envVars:
       - key: APP_ENV
         value: production
+      # Render's load balancer is the one proxy in front of the container; without this
+      # every anonymous visitor shares that proxy's rate-limit bucket.
+      - key: TRUSTED_PROXY_COUNT
+        value: "1"
       - key: SECRET_KEY
         sync: false
       - key: GEMINI_API_KEY

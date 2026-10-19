@@ -72,7 +72,7 @@ that one is worth removing.
 ## What needs care
 
 - **The HITL gate.** Any path that can put an answer in front of a customer must
-  run `risk_service` on the text that is actually shown. See `SECURITY.md`.
+  run `guardrails.detect_commitment_risk` on the text that is actually shown. See `SECURITY.md`.
 - **RBAC in retrieval.** The Qdrant payload filter is the second of two layers,
   not a convenience. Tests assert no `internal` chunk reaches a `public` asker.
 - **The semantic cache.** It matches on meaning, so anything question-specific —

@@ -1,7 +1,7 @@
 import pytest
 
-from backend.services.chunking_service import chunk_sections, chunk_sections_by_classification
-from backend.services.parser_service import ParsedSection
+from backend.services.documents.chunking_service import chunk_sections, chunk_sections_by_classification
+from backend.services.documents.parser_service import ParsedSection
 
 
 def test_chunk_sections_preserves_page_and_global_index():

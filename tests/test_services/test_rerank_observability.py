@@ -1,8 +1,8 @@
-"""Rerank tut xuong heuristic thi phai de lai dau vet trong trace.
+"""When rerank falls back to the heuristic, it must leave a mark in the trace.
 
-Cohere Trial key chi cho 10 goi/phut, nen duoi tai that duong fallback duoc di lien tuc.
-Neu no khong duoc ghi lai, trace cua Admin trong y het mot lan chay binh thuong va khong
-cho nao noi rang cross-encoder chua tung chay.
+The Cohere trial key allows only 10 calls per minute, so under real load the fallback path is
+taken constantly. If it were not recorded, an Admin's trace would look exactly like a normal
+run, with nothing saying the cross-encoder never ran.
 """
 
 import pytest
@@ -10,7 +10,7 @@ import pytest
 from backend.core import tracing
 from backend.core.cohere_client import CohereRerankError
 from backend.core.config import settings
-from backend.services import rag_service
+from backend.services.chat import rag_service
 
 
 def _hits(*contents: str) -> list[dict]:
@@ -26,7 +26,7 @@ def _rerank_steps(run) -> list[dict]:
 
 @pytest.fixture
 def traced(monkeypatch):
-    """Bat tracing va mo mot run, tra ve chinh run do de test doc lai cac step."""
+    """Enable tracing and open a run, returning that run so the test can read its steps back."""
     monkeypatch.setattr(settings, "tracing_enabled", True)
     return tracing.start_run(query_len=10, project_id=None, clearance="internal")
 
@@ -49,7 +49,7 @@ def test_successful_cohere_rerank_is_recorded(traced, cohere_on, monkeypatch):
 
 
 def test_fallback_is_recorded_as_degraded(traced, cohere_on, monkeypatch):
-    """Day la dong quan trong nhat: rate limit khong duoc phep im lang."""
+    """This is the most important line: a rate limit must never be silent."""
 
     def _boom(*_a, **_kw):
         raise CohereRerankError("429 rate limited")
@@ -64,7 +64,7 @@ def test_fallback_is_recorded_as_degraded(traced, cohere_on, monkeypatch):
 
 
 def test_rerank_switched_off_is_not_reported_as_degraded(traced, monkeypatch):
-    """Tat rerank la lua chon cau hinh, khong phai su co — dung bao dong gia."""
+    """Turning rerank off is a configuration choice, not an incident — do not raise a false alarm."""
     monkeypatch.setattr(settings, "rerank_enabled", False)
 
     rag_service._rerank("giá 2PN", _hits("a", "b"))
@@ -75,7 +75,7 @@ def test_rerank_switched_off_is_not_reported_as_degraded(traced, monkeypatch):
 
 
 def test_answer_still_returned_when_cohere_fails(cohere_on, monkeypatch):
-    """Quan sat duoc la mot chuyen; khong duoc lam hong ket qua la chuyen khac."""
+    """Being observable is one thing; breaking the result is another."""
 
     def _boom(*_a, **_kw):
         raise CohereRerankError("429")

@@ -15,8 +15,8 @@ from pydantic import BaseModel, Field
 
 from backend.ai.answer_cleanup import wants_images_for_prompt
 from backend.ai.guardrails import escape_untrusted
-from backend.services.inventory_service import InventoryUnit
-from backend.services.search_criteria import ZeroResultDiagnosis, format_zero_result
+from backend.services.chat.inventory_service import InventoryUnit
+from backend.services.chat.search_criteria import ZeroResultDiagnosis, format_zero_result
 
 SYSTEM_INSTRUCTION_VERSION = "2026-10-19.1"
 

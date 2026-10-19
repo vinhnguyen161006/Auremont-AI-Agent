@@ -12,7 +12,8 @@ decimal, while DOCUMENT accepts English unit names and reads printed thousands s
 
 import pytest
 
-from backend.services import ingestion_service, inventory_service
+from backend.services.chat import inventory_service
+from backend.services.documents import ingestion_service
 from backend.utils.vnd import Profile, parse_vnd
 
 BILLION = 1_000_000_000
@@ -73,8 +74,8 @@ def test_every_budget_regex_shares_one_unit_vocabulary():
     """`tỉ` was matched by one of the five patterns and `tr` was rejected by another, so a
     northern-spelled or abbreviated budget was silently dropped depending on the code path."""
     from backend.routers.admin_observability import _BUDGET_PATTERN
-    from backend.services.memory_service import BUDGET_PATTERN
-    from backend.services.search_criteria import _VAGUE_AROUND_PATTERN
+    from backend.services.chat.memory_service import BUDGET_PATTERN
+    from backend.services.chat.search_criteria import _VAGUE_AROUND_PATTERN
 
     for pattern in (_BUDGET_PATTERN, BUDGET_PATTERN, _VAGUE_AROUND_PATTERN):
         assert pattern.search("tầm 3 tỉ") is not None, pattern.pattern

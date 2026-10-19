@@ -1,13 +1,13 @@
 """add message suggested_questions
 
-Cột mới lưu 2-3 câu hỏi gợi ý tiếp theo mà AI đề xuất sau mỗi câu trả lời (vd. "Giá căn 2PN
-bao nhiêu?"), dựa trên chủ đề đang trao đổi trong phiên chat. Khác với `quick_replies`
-(chỉ luồng khách, là lựa chọn TRẢ LỜI cho câu AI vừa hỏi), cột này áp dụng cho CẢ Sale lẫn
-khách và là câu hỏi MỚI người dùng có thể muốn hỏi tiếp.
+The new column stores the 2-3 follow-up questions the AI suggests after each answer (e.g.
+"Giá căn 2PN bao nhiêu?"), based on the topic of the chat session. Unlike `quick_replies`
+(customer flow only, ANSWER options to the question the AI just asked), this column applies
+to BOTH Sales and customers and holds NEW questions the user may want to ask next.
 
-Sinh trong cùng một lời gọi LLM với câu trả lời (schema-constrained decoding), không tốn
-thêm round trip. Xem backend/ai/prompts.py::ConsultAnswer / SaleAnswer và
-backend/services/agent_pipeline.py::_generate.
+Generated in the same LLM call as the answer (schema-constrained decoding), with no extra
+round trip. See backend/ai/prompts.py::ConsultAnswer / SaleAnswer and
+backend/services/chat/agent_pipeline.py::_generate.
 
 Revision ID: a2b3c4d5e6f7
 Revises: f1a2b3c4d5e6

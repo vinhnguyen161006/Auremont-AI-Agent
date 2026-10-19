@@ -12,8 +12,8 @@ import pytest
 
 from backend.core import tracing
 from backend.core.config import settings
-from backend.services import agent_pipeline
-from backend.services.verifier_service import FailureMode, NextAction, VerifierResult
+from backend.services.chat import agent_pipeline
+from backend.services.chat.verifier_service import FailureMode, NextAction, VerifierResult
 
 QUERY = "Gia can 2PN va con bao nhieu can?"
 DOCS = [{"document_id": 1, "title": "bang-gia.pdf", "page": 2, "content": "Can 2PN tu 3,6 ty.", "score": 0.82}]
@@ -21,7 +21,7 @@ DOCS = [{"document_id": 1, "title": "bang-gia.pdf", "page": 2, "content": "Can 2
 
 @pytest.fixture
 def trace_file(tmp_path, monkeypatch):
-    """Bat tracing va ghi vao file tam, tra ve ham doc lai cac run."""
+    """Enable tracing to a temporary file and return a function that reads the runs back."""
     path = tmp_path / "runs.jsonl"
     monkeypatch.setattr(settings, "tracing_enabled", True)
     monkeypatch.setattr(settings, "trace_file", str(path))
@@ -48,7 +48,7 @@ def _stub_pipeline(monkeypatch, *, verdicts, needs_inventory=False, units=None, 
     monkeypatch.setattr(agent_pipeline, "_store_cache", lambda *a, **k: None)
     monkeypatch.setattr(agent_pipeline, "query_needs_inventory", lambda query: needs_inventory)
     monkeypatch.setattr(agent_pipeline, "query_needs_documents", lambda query: True)
-    monkeypatch.setattr(agent_pipeline.risk_service, "detect_commitment_risk", lambda answer: False)
+    monkeypatch.setattr(agent_pipeline.guardrails, "detect_commitment_risk", lambda answer: False)
     monkeypatch.setattr(agent_pipeline, "generate_json", lambda _p, schema, **k: schema(text="- Can 2PN tu 3,6 ty."))
     monkeypatch.setattr(
         agent_pipeline.verifier_service,
@@ -110,7 +110,7 @@ def test_mysql_metrics_can_run_without_jsonl_tracing(tmp_path, monkeypatch):
 
 
 def test_routing_decisions_are_recorded(trace_file, monkeypatch):
-    """Vi sao cau hoi nay khong goi API ton kho — chi tra loi duoc neu co ghi lai."""
+    """Why this question did not call the inventory API can only be answered if it was recorded."""
     _stub_pipeline(monkeypatch, verdicts=[_verdict(0.9)])
 
     agent_pipeline.run_pipeline(QUERY)
@@ -143,7 +143,7 @@ def test_tool_call_records_result_and_latency(trace_file, monkeypatch):
 
 
 def test_failed_tool_call_is_still_traced_with_latency(trace_file, monkeypatch):
-    """Timeout va tu choi ngay lap tuc la hai loi khac nhau, chi do tre phan biet duoc."""
+    """A timeout and an immediate refusal are different failures; only latency tells them apart."""
     _stub_pipeline(monkeypatch, verdicts=[_verdict(0.9)], needs_inventory=True, inventory_fails=True)
 
     agent_pipeline.run_pipeline(QUERY)
@@ -154,7 +154,7 @@ def test_failed_tool_call_is_still_traced_with_latency(trace_file, monkeypatch):
 
 
 def test_retry_is_visible_as_a_second_attempt(trace_file, monkeypatch):
-    """Retry va Reflexion khac nhau o cho lan 2 co mang theo correction hay khong."""
+    """Retry and Reflexion differ in whether the second attempt carries a correction."""
     _stub_pipeline(monkeypatch, verdicts=[_verdict(0.3), _verdict(0.9)])
 
     agent_pipeline.run_pipeline(QUERY)
@@ -190,7 +190,7 @@ def test_route_after_verify_records_the_decision(trace_file, monkeypatch):
 
 
 def test_answer_text_never_reaches_the_trace(trace_file, monkeypatch):
-    """Trace ghi ra file, khong duoc mang theo noi dung tra loi khach hang."""
+    """The trace is written to a file and must not carry the text of customer answers."""
     _stub_pipeline(monkeypatch, verdicts=[_verdict(0.3), _verdict(0.9)])
 
     agent_pipeline.run_pipeline(QUERY)
@@ -201,7 +201,7 @@ def test_answer_text_never_reaches_the_trace(trace_file, monkeypatch):
 
 
 def test_a_write_failure_does_not_break_the_answer(tmp_path, monkeypatch):
-    """Het dia hay mount chi doc thi mat quan sat, khong duoc mat cau tra loi."""
+    """A full disk or a read-only mount loses observability; it must not lose the answer."""
     monkeypatch.setattr(settings, "tracing_enabled", True)
     monkeypatch.setattr(settings, "trace_file", str(tmp_path))
     _stub_pipeline(monkeypatch, verdicts=[_verdict(0.9)])
@@ -212,7 +212,7 @@ def test_a_write_failure_does_not_break_the_answer(tmp_path, monkeypatch):
 
 
 def test_read_runs_skips_a_corrupt_line(tmp_path, monkeypatch):
-    """File dang duoc ghi vao thi dong cuoi co the dut — khong duoc vi the ma bo ca file."""
+    """A file being written to may end in a cut-off line — that must not discard the whole file."""
     path = tmp_path / "runs.jsonl"
     path.write_text('{"run_id": "a"}\nnot-json\n{"run_id": "b"}\n', encoding="utf-8")
 

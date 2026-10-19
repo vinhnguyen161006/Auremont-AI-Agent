@@ -20,8 +20,8 @@ using the session's own (unresolved) project id.
 """
 
 from backend.core.enums import MessageSender
-from backend.services import agent_pipeline
-from backend.services.catalog_context_service import TowerContextResult
+from backend.services.chat import agent_pipeline
+from backend.services.chat.catalog_context_service import TowerContextResult
 
 
 def _policy_hit() -> dict:
